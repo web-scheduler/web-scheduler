@@ -1,0 +1,96 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+env:
+  # Disable the .NET logo in the console output.
+  DOTNET_NOLOGO: true
+  # Disable the .NET first time experience to skip caching NuGet packages and speed up the build.
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  # Disable sending .NET CLI telemetry to Microsoft.
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # Set the build number in MinVer.
+  MINVERBUILDMETADATA: build.${{github.run_number}}
+
+jobs:
+  build:
+    name: Build-${{matrix.os}}
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2.4.0
+        with:
+          lfs: true
+          fetch-depth: 0
+      - name: "Install .NET Core SDK"
+        uses: actions/setup-dotnet@v1.9.0
+      - name: "Dotnet Tool Restore"
+        run: dotnet tool restore
+        shell: pwsh
+      - name: "Dotnet Cake Build"
+        run: dotnet cake --target=Build
+        shell: pwsh
+      - name: "Dotnet Cake Test"
+        run: dotnet cake --target=Test
+        shell: pwsh
+      - name: "Dotnet Cake Publish"
+        run: dotnet cake --target=Publish
+        shell: pwsh
+      - name: "Publish Artefacts"
+        uses: actions/upload-artifact@v2.3.1
+        with:
+          name: ${{matrix.os}}
+          path: "./Artefacts"
+
+  docker:
+    name: Docker-${{matrix.os}}
+    env:
+      DOCKER_IMAGE_NAME: WebScheduler
+      DOCKER_REGISTRY: registry.hub.docker.com
+      DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
+      DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+    environment:
+      name: 'Docker Hub'
+      url: https://hub.docker.com/repository/docker/DOCKER_USERNAME/WebScheduler
+    permissions:
+      packages: write
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2.4.0
+        with:
+          lfs: true
+          fetch-depth: 0
+      - name: "Install .NET Core SDK"
+        uses: actions/setup-dotnet@v1.9.0
+      - name: "Dotnet Tool Restore"
+        run: dotnet tool restore
+        shell: pwsh
+      - name: "Install QEMU"
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+      - name: "Available platforms"
+        run: echo ${{steps.qemu.outputs.platforms}}
+      - name: "Install Docker BuildX"
+        uses: docker/setup-buildx-action@v1
+      - name: "Docker Login"
+        if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+        run: echo ${{env.DOCKER_PASSWORD}} | docker login ${{env.DOCKER_REGISTRY}} --username ${{env.DOCKER_USERNAME}} --password-stdin
+        shell: pwsh
+      - name: "Dotnet Cake DockerBuild"
+        run: dotnet cake --target=DockerBuild --tag=${{env.DOCKER_REGISTRY}}/${{env.DOCKER_USERNAME}}/${{env.DOCKER_IMAGE_NAME}} --push=${{github.ref == 'refs/heads/main' || github.event_name == 'release'}}
+        shell: pwsh
