@@ -11,6 +11,7 @@
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "http://localhost:8080",
+      "applicationUrl": "http://localhost:5000",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       },
@@ -21,6 +22,7 @@
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "http://localhost:8080",
+      "applicationUrl": "http://localhost:5000",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Production"
       },

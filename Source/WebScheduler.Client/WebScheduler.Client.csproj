@@ -3,9 +3,11 @@
   <PropertyGroup Label="Build">
     <TargetFramework>net6.0</TargetFramework>
     <OutputType>Exe</OutputType>
+    <UserSecretsId>de1c40c9-e973-47e8-8690-818a761e0a7f</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup Label="Package References">
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
     <PackageReference Include="Microsoft.Orleans.Client" Version="3.5.1" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.5.1" />
