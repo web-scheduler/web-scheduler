@@ -66,7 +66,7 @@ public static class Program
         new ClientBuilder()
             .UseAdoNetClustering(options =>
             {
-                options.Invariant = "Npgsql";
+                options.Invariant = Environment.GetEnvironmentVariable("Invariant");
                 options.ConnectionString = Environment.GetEnvironmentVariable("ConnectionString");
             })
             .Configure<ClusterOptions>(options =>

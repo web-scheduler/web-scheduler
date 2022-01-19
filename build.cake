@@ -7,18 +7,20 @@ var tag =
     EnvironmentVariable("Tag", (string)null);
 var platform =
     HasArgument("Platform") ? Argument<string>("Platform") :
-    EnvironmentVariable("Platform", "linux/amd64,linux/arm64");
+    EnvironmentVariable("Platform", "linux/amd64");
 var push =
     HasArgument("Push") ? Argument<bool>("Push") :
     EnvironmentVariable("Push", false);
 
-var artefactsDirectory = Directory("./Artefacts");
+
+
+var ArtifactsDirectory = Directory("./Artifacts");
 
 Task("Clean")
-    .Description("Cleans the artefacts, bin and obj directories.")
+    .Description("Cleans the Artifacts, bin and obj directories.")
     .Does(() =>
     {
-        CleanDirectory(artefactsDirectory);
+        CleanDirectory(ArtifactsDirectory);
         DeleteDirectories(GetDirectories("**/bin"), new DeleteDirectorySettings() { Force = true, Recursive = true });
         DeleteDirectories(GetDirectories("**/obj"), new DeleteDirectorySettings() { Force = true, Recursive = true });
     });
@@ -46,7 +48,7 @@ Task("Build")
     });
 
 Task("Test")
-    .Description("Runs unit tests and outputs test results to the artefacts directory.")
+    .Description("Runs unit tests and outputs test results to the Artifacts directory.")
     .DoesForEach(GetFiles("./Tests/**/*.csproj"), project =>
     {
         DotNetTest(
@@ -63,7 +65,7 @@ Task("Test")
                 },
                 NoBuild = true,
                 NoRestore = true,
-                ResultsDirectory = artefactsDirectory,
+                ResultsDirectory = ArtifactsDirectory,
             });
     });
 
@@ -78,7 +80,7 @@ Task("Publish")
                 Configuration = configuration,
                 NoBuild = true,
                 NoRestore = true,
-                OutputDirectory = artefactsDirectory + Directory("Publish"),
+                OutputDirectory = ArtifactsDirectory + Directory("Publish"),
             });
     });
 
@@ -96,6 +98,9 @@ Task("DockerBuild")
         // docker buildx inspect --bootstrap
         // To stop using buildx remove the buildx parameter and the --platform, --progress switches.
         // See https://github.com/docker/buildx
+
+        System.IO.Directory.CreateDirectory(ArtifactsDirectory);
+        System.IO.File.WriteAllText(System.IO.Path.Join(ArtifactsDirectory, "DOCKER_TAG"), $"{version}");
         StartProcess(
             "docker",
             new ProcessArgumentBuilder()
@@ -145,8 +150,8 @@ Task("DockerBuild")
                 "dotnet",
                 new ProcessSettings()
                     .WithArguments(x => x
-                        .Append("minver")
-                        .AppendSwitch("--default-pre-release-phase", preReleasePhase))
+                        .Append("minver"))
+                       // .AppendSwitch("--default-pre-release-phase", preReleasePhase)
                     .SetRedirectStandardOutput(true),
                     out var versionLines);
             return versionLines.LastOrDefault();

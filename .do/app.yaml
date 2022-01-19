@@ -1,0 +1,36 @@
+alerts:
+- rule: DEPLOYMENT_FAILED
+- rule: DOMAIN_FAILED
+databases:
+- cluster_name: web-scheduler-prod
+  engine: MYSQL
+  name: web-scheduler-prod
+  production: true
+  version: "8"
+name: web-scheduler
+region: nyc
+services:
+- envs:
+  - key: ASPNETCORE_ENVIRONMENT
+    scope: RUN_AND_BUILD_TIME
+    value: Production
+  - key: Storage__Invariant
+    scope: RUN_AND_BUILD_TIME
+    value: MySql.Data.MySqlClient
+  - key: Storage__ConnectionString
+    scope: RUN_TIME
+    value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;Userid=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Require;Trust
+      Server Certificate=true;
+  http_port: 80
+  image:
+    registry_type: DOCR
+    repository: web-scheduler-server
+    tag: 0.1.1-alpha.0.20
+  instance_count: 2
+  instance_size_slug: professional-xs
+  internal_ports:
+  - 11111
+  - 30000
+  name: web-scheduler-server
+  routes:
+  - path: /dash

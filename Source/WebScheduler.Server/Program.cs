@@ -23,7 +23,7 @@ public class Program
 
         try
         {
-            Log.Information("Initialising.");
+            Log.Information("Initializing.");
             host = CreateHostBuilder(args).Build();
 
             host.LogApplicationStarted();
@@ -111,6 +111,7 @@ public class Program
                 "PubSubStore",
                 options =>
                 {
+                    options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;

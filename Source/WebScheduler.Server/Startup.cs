@@ -40,10 +40,7 @@ public class Startup
         application
             .UseRouting()
             .UseSerilogRequestLogging()
-            .UseEndpoints(
-                builder =>
-                {
-                    builder.MapHealthChecks("/status");
-                    builder.MapHealthChecks("/status/self", new HealthCheckOptions() { Predicate = _ => false });
-                });
+            .UseHealthChecks("/status")
+            .UseHealthChecks("/status/self", new HealthCheckOptions() { Predicate = _ => false });
+
 }

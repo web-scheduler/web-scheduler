@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Versioning">
-    <MinVerDefaultPreReleasePhase>preview</MinVerDefaultPreReleasePhase>
-    <MinVerVerbosity>normal</MinVerVerbosity>
+    <MinVerDefaultPreReleasePhase>alpha</MinVerDefaultPreReleasePhase>
+    <MinVerVerbosity>detailed</MinVerVerbosity>
   </PropertyGroup>
 
   <ItemGroup Label="Package References">

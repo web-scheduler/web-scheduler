@@ -15,6 +15,11 @@
     <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
 
+  <PropertyGroup Label="Runtime Configuration">
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
   <PropertyGroup Label="Package">
     <Authors>Elan Hasson</Authors>
     <Company>Elan Hasson</Company>
@@ -28,6 +33,7 @@
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.5.1" />
     <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.5.1" />
     <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.5.1" />
+    <PackageReference Include="MySql.Data" Version="8.0.27" />
     <PackageReference Include="OrleansDashboard" Version="3.6.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />

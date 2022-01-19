@@ -9,30 +9,29 @@
     },
     "Development": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "launchBrowser": true,
-      "externalUrlConfiguration": true,
       "launchUrl": "http://localhost:8080",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
-      }
+      },
+      "dotnetRunMessages": true,
+      "externalUrlConfiguration": true
     },
     "Production": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "launchBrowser": true,
-      "externalUrlConfiguration": true,
       "launchUrl": "http://localhost:8080",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Production"
-      }
+      },
+      "dotnetRunMessages": true,
+      "externalUrlConfiguration": true
     },
-    // dotnet watch run must be run without the Visual Studio debugger using CTRL+F5.
     "Watch Development (CTRL+F5)": {
       "commandName": "Executable",
       "executablePath": "dotnet",
-      "workingDirectory": "$(ProjectDir)",
       "commandLineArgs": "watch",
+      "workingDirectory": "$(ProjectDir)",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       }
@@ -40,11 +39,20 @@
     "Watch Production (CTRL+F5)": {
       "commandName": "Executable",
       "executablePath": "dotnet",
-      "workingDirectory": "$(ProjectDir)",
       "commandLineArgs": "watch",
+      "workingDirectory": "$(ProjectDir)",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Production"
       }
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "launchBrowser": true,
+      "launchUrl": "http://localhost:8080/",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "distributionName": ""
     }
   }
 }
