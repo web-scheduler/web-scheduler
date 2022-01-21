@@ -16,24 +16,28 @@ services:
 - envs:
   - key: ASPNETCORE_ENVIRONMENT
     scope: RUN_AND_BUILD_TIME
-    value: Production
+    value: Development
   - key: Storage__Invariant
     scope: RUN_AND_BUILD_TIME
     value: MySql.Data.MySqlClient
   - key: Storage__ConnectionString
     scope: RUN_TIME
     value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;Userid=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
+  health_check:
+    http_path: /status/self
+    port: 5000 # prod = 80 , dev = 5000
   http_port: 8080
   image:
     registry_type: DOCR
     repository: web-scheduler-server
-    tag: 0.1.1-alpha.0.4
+    tag: 0.1.1-alpha.0.6
   instance_count: 3
   instance_size_slug: professional-xs
   internal_ports:
   - 11111
   - 30000
-  - 80 #health check port
+  - 80
+  - 5000
   name: web-scheduler-server
   routes:
   - path: /

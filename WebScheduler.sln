@@ -63,6 +63,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEM
 		.github\ISSUE_TEMPLATE\FEATURE_REQUEST.yml = .github\ISSUE_TEMPLATE\FEATURE_REQUEST.yml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".do", ".do", "{95B06FEA-F585-4DAD-814B-3594525AB359}"
+	ProjectSection(SolutionItems) = preProject
+		.do\app.yaml = .do\app.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
