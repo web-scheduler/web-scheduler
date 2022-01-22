@@ -17,6 +17,9 @@ services:
   - key: ASPNETCORE_ENVIRONMENT
     scope: RUN_AND_BUILD_TIME
     value: Production
+  - key: Kestrel__Endpoints__Http__Url
+    scope: RUN_TIME
+    value: http://*:5000
   - key: Storage__Invariant
     scope: RUN_AND_BUILD_TIME
     value: MySql.Data.MySqlClient
@@ -25,19 +28,19 @@ services:
     value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;Userid=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
   health_check:
     http_path: /status/self
-    port: 80 # prod = 80 , dev = 5000
+    port: 5000
+    initial_delay_seconds: 10
   http_port: 8080
   image:
     registry_type: DOCR
     repository: web-scheduler-server
-    tag: 0.1.1-alpha.0.6
+    tag: 0.1.1-alpha.0.9
   instance_count: 3
   instance_size_slug: professional-xs
   internal_ports:
   - 11111
   - 30000
-  - 80
-  - 5000 # used for development health checks
+  - 5000 # health checks
   name: web-scheduler-server
   routes:
   - path: /
