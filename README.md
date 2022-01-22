@@ -1,8 +1,8 @@
 # Web Scheduler
 
-[![GitHub Actions Status](https://github.com/ElanHasson/web-scheduler/workflows/Build/badge.svg?branch=main)](https://github.com/ElanHasson/web-scheduler/actions)
+[![GitHub Actions Status](https://github.com/web-scheduler/web-scheduler/workflows/Build/badge.svg?branch=main)](https://github.com/web-scheduler/web-scheduler/actions)
 
-[![GitHub Actions Build History](https://buildstats.info/github/chart/ElanHasson/web-scheduler?branch=main&includeBuildsFromPullRequest=false)](https://github.com/ElanHasson/web-scheduler/actions)
+[![GitHub Actions Build History](https://buildstats.info/github/chart/web-scheduler/web-scheduler?branch=main&includeBuildsFromPullRequest=false)](https://github.com/web-scheduler/web-scheduler/actions)
 
 The Web Scheduler will be a highly-available, distributed, task-scheduling system allowing users to schedule tasks, one time, or recurring, that will use a variety of delivery mechanisms to send a signal and trigger something in a remote application.
 
