@@ -18,11 +18,12 @@
 
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
-			"ms-dotnettools.csharp",
-      "ms-dotnettools.vscode-dotnet-pack",
-			"eamodio.gitlens",
-			"editorconfig.editorconfig",
-			"logerfo.sln-support"
+		"ms-dotnettools.csharp",
+		"ms-dotnettools.vscode-dotnet-pack",
+		"eamodio.gitlens",
+		"editorconfig.editorconfig",
+		"logerfo.sln-support",
+		"cake-build.cake-vscode"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
