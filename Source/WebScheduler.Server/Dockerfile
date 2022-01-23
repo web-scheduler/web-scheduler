@@ -9,9 +9,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine AS base
 # Open Container Initiative (OCI) labels (See https://github.com/opencontainers/image-spec/blob/master/annotations.md).
 LABEL org.opencontainers.image.title="Web Scheduler" \
     org.opencontainers.image.description="A general web scheduler with a variety of triggers." \
-    org.opencontainers.image.documentation="https://github.com/ElanHasson/web-scheduler" \
-    org.opencontainers.image.source="https://github.com/ElanHasson/web-scheduler.git" \
-    org.opencontainers.image.url="https://github.com/ElanHasson/web-scheduler" \
+    org.opencontainers.image.documentation="https://github.com/web-scheduler/web-scheduler" \
+    org.opencontainers.image.source="https://github.com/web-scheduler/web-scheduler.git" \
+    org.opencontainers.image.url="https://github.com/web-scheduler/web-scheduler" \
     org.opencontainers.image.vendor="Elan Hasson"
 # Disable the culture invariant mode which defaults to true in the base alpine image
 # (See https://github.com/dotnet/corefx/blob/8245ee1e8f6063ccc7a3a60cafe821d29e85b02f/Documentation/architecture/globalization-invariant-mode.md)
