@@ -70,6 +70,30 @@ Task("Test")
             });
     });
 
+Task("Pack")
+    .Description("Creates NuGet packages and outputs them to the artifacts directory.")
+    .IsDependentOn("Test")
+    .IsDependentOn("Publish")
+    .DoesForEach(GetFiles("./Source/**/*.csproj"), project =>
+(() =>
+    {
+        DotNetPack(
+            project.ToString(),
+            new DotNetPackSettings()
+            {
+                Configuration = configuration,
+                IncludeSymbols = true,
+                MSBuildSettings = new DotNetMSBuildSettings()
+                {
+                    ContinuousIntegrationBuild = !BuildSystem.IsLocalBuild,
+                },
+                NoBuild = true,
+                NoRestore = true,
+                OutputDirectory = ArtifactsDirectory + Directory("Pack"),
+            });
+    });
+
+
 Task("Publish")
     .Description("Publishes the solution.")
     .IsDependentOn("Test")
@@ -169,28 +193,6 @@ Task("DockerBuild")
                 out var shaLines);
             return shaLines.LastOrDefault();
         }
-    });
-
-Task("Pack")
-    .Description("Creates NuGet packages and outputs them to the artifacts directory.")
-    .IsDependentOn("Test")
-    .IsDependentOn("Publish")
-    .Does(() =>
-    {
-        DotNetPack(
-            ".",
-            new DotNetPackSettings()
-            {
-                Configuration = configuration,
-                IncludeSymbols = true,
-                MSBuildSettings = new DotNetMSBuildSettings()
-                {
-                    ContinuousIntegrationBuild = !BuildSystem.IsLocalBuild,
-                },
-                NoBuild = true,
-                NoRestore = true,
-                OutputDirectory = ArtifactsDirectory + Directory("Pack"),
-            });
     });
 
 
