@@ -24,12 +24,6 @@
 
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\..\..\repos\web-scheduler-api\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
   <PropertyGroup Label="Signing" Condition="'$(Sign)' == 'true'">
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Key.snk</AssemblyOriginatorKeyFile>
