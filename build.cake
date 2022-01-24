@@ -74,8 +74,7 @@ Task("Pack")
     .Description("Creates NuGet packages and outputs them to the artifacts directory.")
     .IsDependentOn("Test")
     .IsDependentOn("Publish")
-    .DoesForEach(GetFiles("./Source/**/*.csproj"), project =>
-(() =>
+    .DoesForEach(GetFiles("./Tests/**/*.csproj"), project =>
     {
         DotNetPack(
             project.ToString(),
