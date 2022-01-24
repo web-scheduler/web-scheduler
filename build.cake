@@ -70,14 +70,16 @@ Task("Test")
             });
     });
 
+    
+
 Task("Pack")
     .Description("Creates NuGet packages and outputs them to the artifacts directory.")
     .IsDependentOn("Test")
     .IsDependentOn("Publish")
-    .DoesForEach(GetFiles("./Tests/**/*.csproj"), project =>
+    .Does(() =>
     {
         DotNetPack(
-            project.ToString(),
+            ".",
             new DotNetPackSettings()
             {
                 Configuration = configuration,
@@ -193,7 +195,6 @@ Task("DockerBuild")
             return shaLines.LastOrDefault();
         }
     });
-
 
 Task("Default")
     .Description("Cleans, restores NuGet packages, builds the solution, runs unit tests and then builds a Docker image, then publishes packages.")
