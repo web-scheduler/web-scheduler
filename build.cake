@@ -187,7 +187,7 @@ Task("Pack")
                 },
                 NoBuild = true,
                 NoRestore = true,
-                OutputDirectory = ArtifactsDirectory,
+                OutputDirectory = ArtifactsDirectory + Directory("Publish"),
             });
     });
 
