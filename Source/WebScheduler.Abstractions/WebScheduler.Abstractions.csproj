@@ -11,7 +11,7 @@
     <!-- Workaround to build this project: https://github.com/dotnet/templating/issues/1438 -->
     <GitHub>true</GitHub>
     <IsTrimmable>true</IsTrimmable>
-    <Sign>true</Sign>
+    <Sign>false</Sign>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <RepositoryUrl>https://github.com/web-scheduler/web-scheduler</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
