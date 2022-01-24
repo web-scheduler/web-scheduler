@@ -70,15 +70,15 @@ Task("Test")
             });
     });
 
-    
+
 
 Task("Pack")
     .Description("Creates NuGet packages and outputs them to the artifacts directory.")
     .IsDependentOn("Test")
-    .Does(() =>
+    .DoesForEach(GetFiles("./Source/**/*.csproj"), project =>
     {
         DotNetPack(
-            ".",
+            project.ToString(),
             new DotNetPackSettings()
             {
                 Configuration = configuration,
