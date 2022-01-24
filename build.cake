@@ -185,7 +185,7 @@ Task("Pack")
                 },
                 NoBuild = true,
                 NoRestore = true,
-                OutputDirectory = artefactsDirectory,
+                OutputDirectory = ArtifactsDirectory,
             });
     });
 
