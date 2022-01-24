@@ -56,6 +56,15 @@ services:
    - key: ForwardedHeaders__AllowedHosts
      scope: RUN_TIME
      value: ${APP_DOMAIN}
+   - key: ASPNETCORE_ENVIRONMENT
+     scope: RUN_AND_BUILD_TIME
+     value: Production
+   - key: Storage__Invariant
+     scope: RUN_AND_BUILD_TIME
+     value: MySql.Data.MySqlClient
+   - key: Storage__ConnectionString
+     scope: RUN_TIME
+     value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
    http_port: 80
    image:
      registry_type: DOCR
