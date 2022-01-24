@@ -75,7 +75,6 @@ Task("Test")
 Task("Pack")
     .Description("Creates NuGet packages and outputs them to the artifacts directory.")
     .IsDependentOn("Test")
-    .IsDependentOn("Publish")
     .Does(() =>
     {
         DotNetPack(
@@ -90,7 +89,7 @@ Task("Pack")
                 },
                 NoBuild = true,
                 NoRestore = true,
-                OutputDirectory = ArtifactsDirectory + Directory("Pack"),
+                OutputDirectory = ArtifactsDirectory,
             });
     });
 
