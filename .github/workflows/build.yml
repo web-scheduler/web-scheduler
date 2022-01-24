@@ -53,6 +53,8 @@ jobs:
         with:
           name: ${{matrix.os}}
           path: "./Artifacts"
+      - name: "List all files"
+        run: ls -R
 
   docker:
     name: Docker-${{matrix.os}}
