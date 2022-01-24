@@ -13,6 +13,7 @@ using WebScheduler.Grains;
 using WebScheduler.Server.Options;
 using Serilog;
 using Serilog.Extensions.Hosting;
+using WebScheduler.Grains.HealthChecks;
 
 public class Program
 {
@@ -90,7 +91,7 @@ public class Program
                 EndpointOptions.DEFAULT_SILO_PORT,
                 EndpointOptions.DEFAULT_GATEWAY_PORT,
                 listenOnAnyHostAddress: !context.HostingEnvironment.IsDevelopment())
-            .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(HelloGrain).Assembly).WithReferences())
+            .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(StorageHealthCheckGrain).Assembly).WithReferences())
             .AddAdoNetGrainStorageAsDefault(options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
