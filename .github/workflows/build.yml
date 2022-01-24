@@ -127,7 +127,7 @@ jobs:
       packages: write
     runs-on: windows-latest
     steps:
-      - name: "Download Artefact"
+      - name: "Download Artifact"
         uses: actions/download-artifact@v2.1.0
         with:
           name: "ubuntu-latest"
@@ -135,7 +135,7 @@ jobs:
         run: dotnet nuget add source https://nuget.pkg.github.com/web-scheduler/index.json --name GitHub --username web-scheduler --password ${{secrets.GITHUB_TOKEN}}
         shell: pwsh
       - name: "Dotnet NuGet Push"
-        run: dotnet nuget push .\*.nupkg --api-key ${{ github.token }} --source GitHub --skip-duplicate
+        run: dotnet nuget push .\**\*.nupkg --api-key ${{ github.token }} --source GitHub --skip-duplicate
         shell: pwsh
 
   push-nuget:
@@ -147,13 +147,13 @@ jobs:
       url: https://www.nuget.org/packages/NuGetTemplate
     runs-on: ubuntu-latest
     steps:
-      - name: "Download Artefact"
+      - name: "Download Artifact"
         uses: actions/download-artifact@v2.1.0
         with:
           name: "ubuntu-latest"
       - name: "Dotnet NuGet Push"
         run: |
-          Get-ChildItem .\ -Filter *.nupkg |
+          Get-ChildItem -Recurse .\ -Filter *.nupkg |
           Where-Object { !$_.Name.Contains('preview') } |
           ForEach-Object { dotnet nuget push $_ --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}} }
         shell: pwsh
