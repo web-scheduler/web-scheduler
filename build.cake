@@ -196,8 +196,8 @@ Task("Default")
     .Description("Cleans, restores NuGet packages, builds the solution, runs unit tests and then builds a Docker image, then publishes packages.")
     .IsDependentOn("Build")
     .IsDependentOn("Test")
-    .IsDependentOn("Pack");
-    .IsDependentOn("Publish");
+    .IsDependentOn("Pack")
+    .IsDependentOn("Publish")
     .IsDependentOn("DockerBuild");
 
 
