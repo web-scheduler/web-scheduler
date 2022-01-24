@@ -169,10 +169,32 @@ Task("DockerBuild")
         }
     });
 
+Task("Pack")
+    .Description("Creates NuGet packages and outputs them to the artefacts directory.")
+    .Does(() =>
+    {
+        DotNetPack(
+            ".",
+            new DotNetPackSettings()
+            {
+                Configuration = configuration,
+                IncludeSymbols = true,
+                MSBuildSettings = new DotNetMSBuildSettings()
+                {
+                    ContinuousIntegrationBuild = !BuildSystem.IsLocalBuild,
+                },
+                NoBuild = true,
+                NoRestore = true,
+                OutputDirectory = artefactsDirectory,
+            });
+    });
+
+
 Task("Default")
     .Description("Cleans, restores NuGet packages, builds the solution, runs unit tests and then builds a Docker image.")
     .IsDependentOn("Build")
     .IsDependentOn("Test")
+    .IsDependentOn("Pack");
     .IsDependentOn("DockerBuild");
 
 
