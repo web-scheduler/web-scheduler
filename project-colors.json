@@ -1,0 +1,36 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "60e0f62e-605a-48f2-bfca-c63b45ab6335": {
+      "ProjectGuid": "60e0f62e-605a-48f2-bfca-c63b45ab6335",
+      "DisplayName": "Documentation",
+      "ColorIndex": 0
+    },
+    "fbd2504d-975e-4b64-b938-7ddd19c7db9d": {
+      "ProjectGuid": "fbd2504d-975e-4b64-b938-7ddd19c7db9d",
+      "DisplayName": "Solution Items",
+      "ColorIndex": 1
+    },
+    "76bd1373-f876-4779-a7c8-6faaf1088b16": {
+      "ProjectGuid": "76bd1373-f876-4779-a7c8-6faaf1088b16",
+      "DisplayName": ".github",
+      "ColorIndex": 2
+    },
+    "b611dc13-54de-41d5-b539-c84b7556a8d1": {
+      "ProjectGuid": "b611dc13-54de-41d5-b539-c84b7556a8d1",
+      "DisplayName": "WebScheduler.Server.IntegrationTest",
+      "ColorIndex": 3
+    },
+    "bf669c8a-9f28-4120-9dbc-a4d5248a2296": {
+      "ProjectGuid": "bf669c8a-9f28-4120-9dbc-a4d5248a2296",
+      "DisplayName": "WebScheduler.Client",
+      "ColorIndex": 4
+    },
+    "da571a13-5b6d-415e-846a-82bc225409d2": {
+      "ProjectGuid": "da571a13-5b6d-415e-846a-82bc225409d2",
+      "DisplayName": "WebScheduler.Server",
+      "ColorIndex": 5
+    }
+  },
+  "NextColorIndex": 6
+}
