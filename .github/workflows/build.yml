@@ -43,6 +43,8 @@ jobs:
       - name: "Dotnet Cake Test"
         run: dotnet cake --target=Test
         shell: pwsh
+      - name: "Dotnet Cake Pack"
+        run: dotnet cake --target=Pack
       - name: "Dotnet Cake Publish"
         run: dotnet cake --target=Publish
         shell: pwsh
@@ -51,6 +53,8 @@ jobs:
         with:
           name: ${{matrix.os}}
           path: "./Artifacts"
+      - name: "List all files"
+        run: ls -R
 
   docker:
     name: Docker-${{matrix.os}}
@@ -112,3 +116,44 @@ jobs:
                 "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/${{env.DOCKER_IMAGE_NAME}}",
                 "tag": "${{ steps.read_file.outputs.contents }}"
               }]'
+  push-github-packages:
+    name: "Push GitHub Packages"
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    environment:
+      name: "GitHub Packages"
+      url: https://github.com/web-scheduler/web-scheduler/packages
+    permissions:
+      packages: write
+    runs-on: windows-latest
+    steps:
+      - name: "Download Artifact"
+        uses: actions/download-artifact@v2.1.0
+        with:
+          name: "ubuntu-latest"
+      - name: "Dotnet NuGet Add Source"
+        run: dotnet nuget add source https://nuget.pkg.github.com/web-scheduler/index.json --name GitHub --username web-scheduler --password ${{secrets.GITHUB_TOKEN}}
+        shell: pwsh
+      - name: "Dotnet NuGet Push"
+        run: dotnet nuget push .\**\*.nupkg --api-key ${{ github.token }} --source GitHub --skip-duplicate
+        shell: pwsh
+
+  push-nuget:
+    name: "Push NuGet Packages"
+    needs: build
+    if: github.event_name == 'release'
+    environment:
+      name: "NuGet"
+      url: https://www.nuget.org/packages/NuGetTemplate
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Download Artifact"
+        uses: actions/download-artifact@v2.1.0
+        with:
+          name: "ubuntu-latest"
+      - name: "Dotnet NuGet Push"
+        run: |
+          Get-ChildItem -Recurse .\ -Filter *.nupkg |
+          Where-Object { !$_.Name.Contains('preview') } |
+          ForEach-Object { dotnet nuget push $_ --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}} }
+        shell: pwsh

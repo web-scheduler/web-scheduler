@@ -1,46 +1,79 @@
-alerts:
-- rule: DEPLOYMENT_FAILED
-- rule: DOMAIN_FAILED
 databases:
 - cluster_name: web-scheduler-prod
   engine: MYSQL
   name: web-scheduler-prod
   production: true
   version: "8"
+- cluster_name: web-scheduler-redis
+  engine: REDIS
+  name: web-scheduler-redis
+  production: true
+  version: "6"
 domains:
 - domain: scheduler.nullreference.io
   type: PRIMARY
 name: web-scheduler
 region: nyc
 services:
-- envs:
-  - key: ASPNETCORE_ENVIRONMENT
-    scope: RUN_AND_BUILD_TIME
-    value: Production
-  - key: Kestrel__Endpoints__Http__Url
-    scope: RUN_TIME
-    value: http://*:5000
-  - key: Storage__Invariant
-    scope: RUN_AND_BUILD_TIME
-    value: MySql.Data.MySqlClient
-  - key: Storage__ConnectionString
-    scope: RUN_TIME
-    value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;Userid=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
-  health_check:
-    http_path: /status/self
-    port: 5000
-    initial_delay_seconds: 10
-  http_port: 8080
-  image:
-    registry_type: DOCR
-    repository: web-scheduler-server
-    tag: 0.1.1-alpha.0.9
-  instance_count: 3
-  instance_size_slug: professional-xs
-  internal_ports:
-  - 11111
-  - 30000
-  - 5000 # health checks
-  name: web-scheduler-server
-  routes:
-  - path: /
+ - name: web-scheduler-server
+   envs:
+      - key: ASPNETCORE_ENVIRONMENT
+        scope: RUN_AND_BUILD_TIME
+        value: Production
+      - key: Kestrel__Endpoints__Http__Url
+        scope: RUN_TIME
+        value: http://*:5000
+      - key: Storage__Invariant
+        scope: RUN_AND_BUILD_TIME
+        value: MySql.Data.MySqlClient
+      - key: Storage__ConnectionString
+        scope: RUN_TIME
+        value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
+   health_check:
+     http_path: /status/self
+     port: 5000
+   http_port: 8080
+   image:
+     registry_type: DOCR
+     repository: web-scheduler-server
+     tag: 0.1.1-alpha.0.12
+   instance_count: 3
+   instance_size_slug: professional-xs
+   internal_ports:
+   - 11111
+   - 30000
+   - 5000
+   routes:
+     - path: /
+ - name: web-scheduler-api
+   envs:
+   - key: Redis__ConnectionString
+     scope: RUN_TIME
+     value: ${web-scheduler-redis.HOSTNAME}:${web-scheduler-redis.PORT},user=${web-scheduler-redis.USERNAME},password=${web-scheduler-redis.PASSWORD},Ssl=true
+   - key: Kestrel__Endpoints__Http__Url
+     scope: RUN_TIME
+     value: http://*:80
+   - key: ForwardedHeaders__AllowedHosts
+     scope: RUN_TIME
+     value: ${APP_DOMAIN}
+   - key: ASPNETCORE_ENVIRONMENT
+     scope: RUN_AND_BUILD_TIME
+     value: Production
+   - key: Storage__Invariant
+     scope: RUN_AND_BUILD_TIME
+     value: MySql.Data.MySqlClient
+   - key: Storage__ConnectionString
+     scope: RUN_TIME
+     value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
+   http_port: 80
+   image:
+     registry_type: DOCR
+     repository: web-scheduler-api
+     tag: 0.1.1-alpha.0.7
+   instance_count: 2
+   instance_size_slug: professional-xs
+   routes:
+     - path: /api
+   health_check:
+     http_path: /status
+     port: 80
