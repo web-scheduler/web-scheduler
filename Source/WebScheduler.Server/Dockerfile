@@ -36,7 +36,6 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=true \
 WORKDIR /src
 COPY "WebScheduler.sln" "."
 COPY "Source/WebScheduler.Abstractions/*.csproj" "Source/WebScheduler.Abstractions/"
-COPY "Source/WebScheduler.Client/*.csproj" "Source/WebScheduler.Client/"
 COPY "Source/WebScheduler.Grains/*.csproj" "Source/WebScheduler.Grains/"
 COPY "Source/WebScheduler.Server/*.csproj" "Source/WebScheduler.Server/"
 COPY "Tests/WebScheduler.Server.IntegrationTest/*.csproj" "Tests/WebScheduler.Server.IntegrationTest/"
