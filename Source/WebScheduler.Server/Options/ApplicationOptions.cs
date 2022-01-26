@@ -10,4 +10,6 @@ public class ApplicationOptions
     public KestrelServerOptions Kestrel { get; set; } = default!;
 
     public StorageOptions Storage { get; set; } = default!;
+
+    public ClusterMembershipOptions ClusterMembership { get; set; } = default!;
 }

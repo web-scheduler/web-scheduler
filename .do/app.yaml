@@ -22,7 +22,7 @@ services:
         value: Production
       - key: Kestrel__Endpoints__Http__Url
         scope: RUN_TIME
-        value: http://*:5000
+        value: http://*:80
       - key: Storage__Invariant
         scope: RUN_AND_BUILD_TIME
         value: MySql.Data.MySqlClient
@@ -31,7 +31,7 @@ services:
         value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
    health_check:
      http_path: /status/self
-     port: 5000
+     port: 80
    http_port: 8080
    image:
      registry_type: DOCR
@@ -42,7 +42,7 @@ services:
    internal_ports:
    - 11111
    - 30000
-   - 5000
+   - 80
    routes:
      - path: /
  - name: web-scheduler-api

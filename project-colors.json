@@ -21,16 +21,11 @@
       "DisplayName": "WebScheduler.Server.IntegrationTest",
       "ColorIndex": 3
     },
-    "bf669c8a-9f28-4120-9dbc-a4d5248a2296": {
-      "ProjectGuid": "bf669c8a-9f28-4120-9dbc-a4d5248a2296",
-      "DisplayName": "WebScheduler.Client",
-      "ColorIndex": 4
-    },
     "da571a13-5b6d-415e-846a-82bc225409d2": {
       "ProjectGuid": "da571a13-5b6d-415e-846a-82bc225409d2",
       "DisplayName": "WebScheduler.Server",
-      "ColorIndex": 5
+      "ColorIndex": 4
     }
   },
-  "NextColorIndex": 6
+  "NextColorIndex": 5
 }

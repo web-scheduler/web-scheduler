@@ -9,13 +9,14 @@ using Orleans.Hosting;
 using Orleans.Runtime;
 using Orleans.Statistics;
 using WebScheduler.Abstractions.Constants;
-using WebScheduler.Grains;
 using WebScheduler.Server.Options;
 using Serilog;
 using Serilog.Extensions.Hosting;
 using WebScheduler.Grains.HealthChecks;
 
+#pragma warning disable RCS1102 // Make class static.
 public class Program
+#pragma warning restore RCS1102 // Make class static.
 {
     public static async Task<int> Main(string[] args)
     {
@@ -78,6 +79,7 @@ public class Program
                 (context, services) =>
                 {
                     services.Configure<ApplicationOptions>(context.Configuration);
+                    services.Configure<ClusterMembershipOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.ClusterMembership)));
                     services.Configure<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)));
                     services.Configure<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage)));
                 })
@@ -99,6 +101,13 @@ public class Program
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
+              .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadata, options =>
+              {
+                  options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                  options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                  options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
+                  options.UseJsonFormat = true;
+              })
             .UseAdoNetReminderService(options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
@@ -152,6 +161,9 @@ public class Program
     /// Configures a logger used during the applications lifetime.
     /// <see href="https://nblumhardt.com/2020/10/bootstrap-logger/"/>.
     /// </summary>
+    /// <param name="context">The context.</param>
+    /// <param name="services">The services.</param>
+    /// <param name="configuration">The configuration.</param>
     private static void ConfigureReloadableLogger(
         Microsoft.Extensions.Hosting.HostBuilderContext context,
         IServiceProvider services,
@@ -162,9 +174,8 @@ public class Program
             .Enrich.WithProperty("Application", context.HostingEnvironment.ApplicationName)
             .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName)
             .WriteTo.Conditional(
-                x => context.HostingEnvironment.IsDevelopment(),
+                _ => context.HostingEnvironment.IsDevelopment(),
                 x => x.Console().WriteTo.Debug());
-
 
     private static void ConfigureJsonSerializerSettings(JsonSerializerSettings jsonSerializerSettings)
     {
