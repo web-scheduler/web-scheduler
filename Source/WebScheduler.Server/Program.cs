@@ -78,6 +78,8 @@ public class Program
                 (context, services) =>
                 {
                     services.Configure<ApplicationOptions>(context.Configuration);
+                    services.Configure<ClusterMembershipOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.ClusterMembership)));
+                    
                     services.Configure<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)));
                     services.Configure<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage)));
                 })
@@ -99,6 +101,13 @@ public class Program
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
+              .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadata, options =>
+              {
+                  options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                  options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                  options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
+                  options.UseJsonFormat = true;
+              })
             .UseAdoNetReminderService(options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
