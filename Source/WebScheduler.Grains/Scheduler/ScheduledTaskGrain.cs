@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Runtime;
 using WebScheduler.Abstractions.Constants;
-using WebScheduler.Abstractions.Grains;
+using WebScheduler.Abstractions.Grains.Scheduler;
 
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain
 {
