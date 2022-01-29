@@ -12,4 +12,6 @@ public class ApplicationOptions
     public StorageOptions Storage { get; set; } = default!;
 
     public ClusterMembershipOptions ClusterMembership { get; set; } = default!;
+
+    public OrleansDashboard.DashboardOptions OrleansDashboard { get; set; } = default!;
 }

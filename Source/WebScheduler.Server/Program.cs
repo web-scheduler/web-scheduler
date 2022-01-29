@@ -132,7 +132,7 @@ public class Program
             .UseIf(
                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
                 x => x.UsePerfCounterEnvironmentStatistics())
-            .UseDashboard();
+            .UseDashboard(options => options.BasePath = GetOrleansDashboardOptions(context.Configuration).BasePath);
 
     private static void ConfigureWebHostBuilder(IWebHostBuilder webHostBuilder) =>
         webHostBuilder
@@ -185,4 +185,7 @@ public class Program
 
     private static StorageOptions GetStorageOptions(IConfiguration configuration) =>
         configuration.GetSection(nameof(ApplicationOptions.Storage)).Get<StorageOptions>();
+
+    private static OrleansDashboard.DashboardOptions GetOrleansDashboardOptions(IConfiguration configuration) =>
+        configuration.GetSection(nameof(ApplicationOptions.OrleansDashboard)).Get<OrleansDashboard.DashboardOptions>();
 }
