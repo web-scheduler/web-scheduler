@@ -36,7 +36,7 @@ services:
    image:
      registry_type: DOCR
      repository: web-scheduler-server
-     tag: 0.1.1
+     tag: 0.1.2
    instance_count: 3
    instance_size_slug: professional-xs
    internal_ports:
@@ -45,6 +45,7 @@ services:
    - 80
    routes:
      - path: /OrleansDashboard
+       preserve_path_prefix: true
  - name: web-scheduler-api
    envs:
    - key: Redis__ConnectionString
@@ -86,3 +87,4 @@ static_sites:
   name: web-scheduler-frontend
   routes:
   - path: /
+    preserve_path_prefix: true
