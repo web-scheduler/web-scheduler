@@ -126,9 +126,10 @@ public class Program
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-            .UseIf(
-                RuntimeInformation.IsOSPlatform(OSPlatform.Linux),
-                x => x.UseLinuxEnvironmentStatistics())
+            // Unavailable in App Platform for now.
+            //.UseIf(
+            //    RuntimeInformation.IsOSPlatform(OSPlatform.Linux),
+            //    x => x.UseLinuxEnvironmentStatistics())
             .UseIf(
                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
                 x => x.UsePerfCounterEnvironmentStatistics())
