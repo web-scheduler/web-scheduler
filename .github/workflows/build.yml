@@ -96,7 +96,7 @@ jobs:
       - name: "Install Docker BuildX"
         uses: docker/setup-buildx-action@v1
       - name: "Docker Login"
-        if: github.ref == 'github.event_name == 'release'
+        if: github.event_name == 'release'
         run: echo ${{env.DOCKER_PASSWORD}} | docker login ${{env.DOCKER_REGISTRY}} --username ${{env.DOCKER_USERNAME}} --password-stdin
         shell: pwsh
       - name: "Dotnet Cake DockerBuild"
