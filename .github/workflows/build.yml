@@ -96,20 +96,20 @@ jobs:
       - name: "Install Docker BuildX"
         uses: docker/setup-buildx-action@v1
       - name: "Docker Login"
-        if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+        if: github.ref == 'github.event_name == 'release'
         run: echo ${{env.DOCKER_PASSWORD}} | docker login ${{env.DOCKER_REGISTRY}} --username ${{env.DOCKER_USERNAME}} --password-stdin
         shell: pwsh
       - name: "Dotnet Cake DockerBuild"
         run: dotnet cake --target=DockerBuild --tag=${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/${{env.DOCKER_IMAGE_NAME}} --push=${{github.event_name == 'release'}}
         shell: pwsh
       - name: Read file contents from DOCKER_TAG
-        if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+        if: github.event_name == 'release'
         id: read_file
         uses: andstor/file-reader-action@v1
         with:
           path: "./Artifacts/DOCKER_TAG"
       - name: DigitalOcean App Platform deployment
-        if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+        if:  github.event_name == 'release'
         uses: digitalocean/app_action@main
         with:
           app_name: web-scheduler
