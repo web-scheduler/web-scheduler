@@ -28,7 +28,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain
         if (this.scheduledTaskMetadata.RecordExists)
         {
             this.logger.ScheduledTaskAlreadyExists(this.GetPrimaryKeyString());
-            throw new ScheduledTaskAlreadyExists(this.GetPrimaryKey());
+            throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKey());
         }
 
         this.scheduledTaskMetadata.State = scheduledTaskMetadata;
