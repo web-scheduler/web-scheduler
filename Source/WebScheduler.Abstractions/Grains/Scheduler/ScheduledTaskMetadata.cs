@@ -1,4 +1,4 @@
-﻿namespace WebScheduler.Abstractions.Grains.Scheduler;
+namespace WebScheduler.Abstractions.Grains.Scheduler;
 
 /// <summary>
 /// Model for Scheduled Task metadata
@@ -30,4 +30,15 @@ public class ScheduledTaskMetadata
     /// Specifies if the task is enabled.
     /// </summary>
     public bool IsEnabled { get; set; }
+
+
+    /// <summary>
+    /// Specifies if the task is deleted.
+    /// </summary>
+    public bool IsDeleted { get; set; }
+
+    /// <summary>
+    /// The time the scheduled task was deleted at.
+    /// </summary>
+    public DateTimeOffset DeletedAt { get; set; }
 }
