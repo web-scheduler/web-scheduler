@@ -1,6 +1,4 @@
 namespace WebScheduler.Abstractions.Grains.Scheduler;
-
-using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Orleans;
 
