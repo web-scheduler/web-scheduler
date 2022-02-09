@@ -1,3 +1,8 @@
+alerts:
+- rule: DEPLOYMENT_FAILED
+- rule: DOMAIN_FAILED
+- rule: DEPLOYMENT_LIVE
+- rule: DOMAIN_LIVE
 databases:
 - cluster_name: web-scheduler-prod
   engine: MYSQL
@@ -15,70 +20,106 @@ domains:
 name: web-scheduler
 region: nyc
 services:
- - name: web-scheduler-server
-   envs:
-      - key: ASPNETCORE_ENVIRONMENT
-        scope: RUN_AND_BUILD_TIME
-        value: Production
-      - key: Kestrel__Endpoints__Http__Url
-        scope: RUN_TIME
-        value: http://*:80
-      - key: Storage__Invariant
-        scope: RUN_AND_BUILD_TIME
-        value: MySql.Data.MySqlClient
-      - key: Storage__ConnectionString
-        scope: RUN_TIME
-        value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
-   health_check:
-     http_path: /status/self
-     port: 80
-   http_port: 8080
-   image:
-     registry_type: DOCR
-     repository: web-scheduler-server
-     tag: 0.1.1
-   instance_count: 3
-   instance_size_slug: professional-xs
-   internal_ports:
-   - 11111
-   - 30000
-   - 80
-   routes:
-     - path: /OrleansDashboard
- - name: web-scheduler-api
-   envs:
-   - key: Redis__ConnectionString
-     scope: RUN_TIME
-     value: ${web-scheduler-redis.HOSTNAME}:${web-scheduler-redis.PORT},user=${web-scheduler-redis.USERNAME},password=${web-scheduler-redis.PASSWORD},Ssl=true
-   - key: Kestrel__Endpoints__Http__Url
-     scope: RUN_TIME
-     value: http://*:80
-   - key: ForwardedHeaders__AllowedHosts
-     scope: RUN_TIME
-     value: ${APP_DOMAIN}
-   - key: ASPNETCORE_ENVIRONMENT
-     scope: RUN_AND_BUILD_TIME
-     value: Production
-   - key: Storage__Invariant
-     scope: RUN_AND_BUILD_TIME
-     value: MySql.Data.MySqlClient
-   - key: Storage__ConnectionString
-     scope: RUN_TIME
-     value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
-   http_port: 80
-   image:
-     registry_type: DOCR
-     repository: web-scheduler-api
-     tag: 0.1.1
-   instance_count: 2
-   instance_size_slug: professional-xs
-   routes:
-     - path: /api
-   health_check:
-     http_path: /status
-     port: 80
+- alerts:
+  - operator: GREATER_THAN
+    rule: CPU_UTILIZATION
+    value: 80
+    window: FIVE_MINUTES
+  - operator: GREATER_THAN
+    rule: MEM_UTILIZATION
+    value: 80
+    window: FIVE_MINUTES
+  - operator: GREATER_THAN
+    rule: RESTART_COUNT
+    value: 1
+    window: FIVE_MINUTES
+  envs:
+  - key: ASPNETCORE_ENVIRONMENT
+    scope: RUN_AND_BUILD_TIME
+    value: Production
+  - key: Kestrel__Endpoints__Http__Url
+    scope: RUN_TIME
+    value: http://*:80
+  - key: Storage__Invariant
+    scope: RUN_AND_BUILD_TIME
+    value: MySql.Data.MySqlClient
+  - key: Storage__ConnectionString
+    scope: RUN_TIME
+    value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
+  - key: Serilog__MinimumLevel__Default
+    scope: RUN_TIME
+    value: Verbose
+  health_check:
+    http_path: /status/self
+    port: 80
+  http_port: 8080
+  image:
+    registry_type: DOCR
+    repository: web-scheduler-server
+    tag: 0.1.10
+  instance_count: 3
+  instance_size_slug: professional-xs
+  internal_ports:
+  - 11111
+  - 30000
+  - 80
+  name: web-scheduler-server
+  routes:
+  - path: /OrleansDashboard
+    preserve_path_prefix: true
+- alerts:
+  - operator: GREATER_THAN
+    rule: CPU_UTILIZATION
+    value: 80
+    window: FIVE_MINUTES
+  - operator: GREATER_THAN
+    rule: MEM_UTILIZATION
+    value: 80
+    window: FIVE_MINUTES
+  - operator: GREATER_THAN
+    rule: RESTART_COUNT
+    value: 1
+    window: FIVE_MINUTES
+  envs:
+  - key: Redis__ConnectionString
+    scope: RUN_TIME
+    value: ${web-scheduler-redis.HOSTNAME}:${web-scheduler-redis.PORT},user=${web-scheduler-redis.USERNAME},password=${web-scheduler-redis.PASSWORD},Ssl=true
+  - key: Kestrel__Endpoints__Http__Url
+    scope: RUN_TIME
+    value: http://*:80
+  - key: ForwardedHeaders__AllowedHosts
+    scope: RUN_TIME
+    value: ${APP_DOMAIN}
+  - key: ASPNETCORE_ENVIRONMENT
+    scope: RUN_AND_BUILD_TIME
+    value: Production
+  - key: Storage__Invariant
+    scope: RUN_AND_BUILD_TIME
+    value: MySql.Data.MySqlClient
+  - key: Storage__ConnectionString
+    scope: RUN_TIME
+    value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
+  - key: Serilog__MinimumLevel__Default
+    scope: RUN_TIME
+    value: Verbose
+  - key: ConnectionStrings__DataProtectionConnectionString
+    value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=DataProtection;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
+    scope: RUN_TIME
+  health_check:
+    http_path: /status
+  http_port: 80
+  image:
+    registry_type: DOCR
+    repository: web-scheduler-api
+    tag: 0.1.17
+  instance_count: 2
+  instance_size_slug: professional-xs
+  name: web-scheduler-api
+  routes:
+  - path: /api
 static_sites:
-- environment_slug: html
+- catchall_document: index.html
+  environment_slug: html
   github:
     branch: release
     deploy_on_push: true
@@ -86,3 +127,4 @@ static_sites:
   name: web-scheduler-frontend
   routes:
   - path: /
+    preserve_path_prefix: true
