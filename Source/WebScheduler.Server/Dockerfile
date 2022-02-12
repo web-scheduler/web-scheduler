@@ -63,4 +63,8 @@ RUN --mount=type=cache,id=tools,target=/tools \
 FROM base AS runtime
 WORKDIR /app
 COPY --from=sdk /app .
+
+# Copy diagnostics tools
+WORKDIR /tools
+COPY --from=sdk /tools .
 ENTRYPOINT ["dotnet", "WebScheduler.Server.dll"]
