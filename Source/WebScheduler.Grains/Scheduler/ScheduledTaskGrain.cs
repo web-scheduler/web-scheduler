@@ -100,7 +100,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
             return;
         }
         var dueTime = nextRun - now;
-        this.scheduledTaskMetadata.State.NextRunAt = dueTime;
+        this.scheduledTaskMetadata.State.NextRunAt = nextRun;
 
         if (dueTime == null)
         {
