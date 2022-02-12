@@ -8,5 +8,5 @@ public interface IClockService
     /// <summary>
     /// The current UtcNow.
     /// </summary>
-    DateTimeOffset UtcNow { get; }
+    DateTime UtcNow { get; }
 }

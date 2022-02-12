@@ -5,5 +5,5 @@ namespace WebScheduler.Abstractions.Services;
 public class ClockService : IClockService
 {
     /// <inheritdoc/>
-    public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
+    public DateTime UtcNow => DateTime.UtcNow;
 }

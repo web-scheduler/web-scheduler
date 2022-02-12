@@ -8,12 +8,12 @@ public class ScheduledTaskMetadata
     /// <summary>
     /// Created timestamp.
     /// </summary>
-    public DateTimeOffset Created { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     /// <summary>
     /// Last modified timestamp.
     /// </summary>
-    public DateTimeOffset Modified { get; set; }
+    public DateTime ModifiedAt { get; set; }
 
     /// <summary>
     /// The name of the scheduled task.
@@ -28,7 +28,12 @@ public class ScheduledTaskMetadata
     /// <summary>
     /// The next time the task will execute.
     /// </summary>
-    public TimeSpan? NextRunAt { get; set; }
+    public DateTime? NextRunAt { get; set; }
+
+    /// <summary>
+    /// The next time the task will execute.
+    /// </summary>
+    public DateTime? LastRunAt { get; set; }
 
     /// <summary>
     /// Specifies if the task is enabled.
@@ -43,15 +48,10 @@ public class ScheduledTaskMetadata
     /// <summary>
     /// The time the scheduled task was deleted at.
     /// </summary>
-    public DateTimeOffset DeletedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
 
     /// <summary>
-    /// The cron schedule.
+    /// The Cron Expression
     /// </summary>
-    public string CronExpression { get; set; } = "* * * * *"; // Every Minute
-
-    /// <summary>
-    /// The last Run
-    /// </summary>
-    public DateTime? LastRunAt { get; set; }
+    public string CronExpression { get; set; } = "* * * * *";
 }
