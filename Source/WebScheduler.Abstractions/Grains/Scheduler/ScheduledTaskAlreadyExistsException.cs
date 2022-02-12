@@ -27,7 +27,7 @@ public class ScheduledTaskAlreadyExistsException : Exception
     public ScheduledTaskAlreadyExistsException(Guid id, Exception? innerException) : base($"Scheduled task with id {id} already exists.", innerException) => this.Id = id;
 
     /// <inheritdoc/>
-    public ScheduledTaskAlreadyExistsException(SerializationInfo info, StreamingContext context) : base(info, context)
+    protected ScheduledTaskAlreadyExistsException(SerializationInfo info, StreamingContext context) : base(info, context)
     {
     }
 }

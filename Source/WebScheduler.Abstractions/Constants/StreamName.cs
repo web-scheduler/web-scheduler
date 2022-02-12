@@ -11,7 +11,7 @@ public static class StreamName
     public const string Reminder = nameof(Reminder);
 
     /// <summary>
-    /// Constant for SaidHello Stream.
+    /// Constant for ScheduledTasks Stream.
     /// </summary>
-    public const string SaidHello = nameof(SaidHello);
+    public const string ScheduledTasks = nameof(ScheduledTasks);
 }

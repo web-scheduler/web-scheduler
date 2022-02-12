@@ -14,4 +14,5 @@ public class ApplicationOptions
     public ClusterMembershipOptions ClusterMembership { get; set; } = default!;
 
     public OrleansDashboard.DashboardOptions OrleansDashboard { get; set; } = default!;
+
 }
