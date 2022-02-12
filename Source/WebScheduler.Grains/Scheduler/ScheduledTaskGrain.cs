@@ -98,7 +98,6 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         {
             await this.UnregisterReminder(await this.GetReminder(ReminderName).ConfigureAwait(true)).ConfigureAwait(true);
             return;
-
         }
         var dueTime = nextRun - now;
         this.scheduledTaskMetadata.State.NextRunAt = dueTime;
@@ -110,7 +109,6 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         }
         var secondRun = expression.GetNextOccurrence(nextRun.Value) ?? nextRun.Value.AddMinutes(1);
 
-
         var period = (secondRun - nextRun) ?? TimeSpan.FromMinutes(1);
 
         this.grainReminder = await this.RegisterOrUpdateReminder(ReminderName, dueTime.Value, period).ConfigureAwait(true);
@@ -118,17 +116,15 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
     }
 
-    public Task ReceiveReminder(string reminderName, TickStatus status)
+    public async Task ReceiveReminder(string reminderName, TickStatus status)
     {
         if (string.Equals(ReminderName, reminderName, StringComparison.Ordinal))
         {
-            if (!string.IsNullOrEmpty(this.reminder))
-            {
-                return Task.CompletedTask;
+            this.scheduledTaskMetadata.State.LastRunAt = status.CurrentTickTime;
+            await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
 
-            }
+            await this.SetupReminder().ConfigureAwait(true);
         }
-        return Task.CompletedTask;
     }
 
     private Task PublishReminderAsync(string reminder)

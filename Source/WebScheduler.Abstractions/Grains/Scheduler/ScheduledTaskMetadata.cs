@@ -49,4 +49,9 @@ public class ScheduledTaskMetadata
     /// The cron schedule.
     /// </summary>
     public string CronExpression { get; set; } = "* * * * *"; // Every Minute
+
+    /// <summary>
+    /// The last Run
+    /// </summary>
+    public DateTime? LastRunAt { get; set; }
 }
