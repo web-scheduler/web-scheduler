@@ -30,6 +30,7 @@
 
   <ItemGroup Label="Package References">
     <PackageReference Include="Boxed.AspNetCore" Version="8.0.0" />
+    <PackageReference Include="Cronos" Version="0.7.1" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.6.0" />
     <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.0" />
     <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.6.0" />
@@ -57,15 +58,13 @@
     <PackageReference Include="Serilog.Enrichers.Span" Version="2.0.1" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
     <PackageReference Include="Serilog.Exceptions" Version="8.0.0" />
+    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.0.64" />
+
   </ItemGroup>
 
   <ItemGroup Label="Project References">
     <ProjectReference Include="..\WebScheduler.Abstractions\WebScheduler.Abstractions.csproj" />
     <ProjectReference Include="..\WebScheduler.Grains\WebScheduler.Grains.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.0.64" />
   </ItemGroup>
 
 </Project>

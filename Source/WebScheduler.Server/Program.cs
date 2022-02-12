@@ -13,6 +13,7 @@ using WebScheduler.Server.Options;
 using Serilog;
 using Serilog.Extensions.Hosting;
 using WebScheduler.Grains.HealthChecks;
+using Boxed.AspNetCore;
 
 #pragma warning disable RCS1102 // Make class static.
 public class Program
@@ -78,10 +79,13 @@ public class Program
             .ConfigureServices(
                 (context, services) =>
                 {
-                    services.Configure<ApplicationOptions>(context.Configuration);
-                    services.Configure<ClusterMembershipOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.ClusterMembership)));
-                    services.Configure<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)));
-                    services.Configure<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage)));
+                    services.ConfigureAndValidateSingleton<ApplicationOptions>(context.Configuration);
+                    services.ConfigureAndValidateSingleton<ClusterMembershipOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.ClusterMembership)));
+                    services.ConfigureAndValidateSingleton<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)));
+                    services.ConfigureAndValidateSingleton<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage)));
+
+
+
                 })
             .UseSiloUnobservedExceptionsHandler()
             .UseAdoNetClustering(options =>
@@ -113,12 +117,9 @@ public class Program
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                 })
-            //.UseTransactions(withStatisticsReporter: true)
-            //.AddAzureTableTransactionalStateStorageAsDefault(
-            //    options => options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString)
-            .AddSimpleMessageStreamProvider(StreamProviderName.Default)
+            .AddSimpleMessageStreamProvider(StreamProviderName.ScheduledTasks)
             .AddAdoNetGrainStorage(
-                "PubSubStore",
+                GrainStorageProviderName.PubSubStore,
                 options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;

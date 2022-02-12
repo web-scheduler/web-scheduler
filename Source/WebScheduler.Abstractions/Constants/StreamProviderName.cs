@@ -9,4 +9,9 @@ public static class StreamProviderName
     /// The default stream provider name.
     /// </summary>
     public const string Default = nameof(Default);
+
+    /// <summary>
+    /// The ScheduledTask stream provider name.
+    /// </summary>
+    public const string ScheduledTasks = nameof(ScheduledTasks);
 }

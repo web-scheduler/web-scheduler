@@ -5,7 +5,6 @@ namespace WebScheduler.Abstractions.Grains.Scheduler;
 /// </summary>
 public class ScheduledTaskMetadata
 {
-
     /// <summary>
     /// Created timestamp.
     /// </summary>
@@ -27,10 +26,14 @@ public class ScheduledTaskMetadata
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
+    /// The next time the task will execute.
+    /// </summary>
+    public TimeSpan? NextRunAt { get; set; }
+
+    /// <summary>
     /// Specifies if the task is enabled.
     /// </summary>
     public bool IsEnabled { get; set; }
-
 
     /// <summary>
     /// Specifies if the task is deleted.
@@ -41,4 +44,14 @@ public class ScheduledTaskMetadata
     /// The time the scheduled task was deleted at.
     /// </summary>
     public DateTimeOffset DeletedAt { get; set; }
+
+    /// <summary>
+    /// The cron schedule.
+    /// </summary>
+    public string CronExpression { get; set; } = "* * * * *"; // Every Minute
+
+    /// <summary>
+    /// The last Run
+    /// </summary>
+    public DateTime? LastRunAt { get; set; }
 }
