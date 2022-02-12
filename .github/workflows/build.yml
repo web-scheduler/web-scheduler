@@ -123,7 +123,6 @@ jobs:
   push-github-packages:
     name: "Push GitHub Packages"
     needs: build
-    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
     environment:
       name: "GitHub Packages"
       url: https://github.com/web-scheduler/web-scheduler/packages
