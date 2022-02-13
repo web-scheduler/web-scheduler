@@ -51,13 +51,12 @@ RUN dotnet test --configuration $Configuration --no-build
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet publish "Source/WebScheduler.Server/WebScheduler.Server.csproj" --configuration $Configuration --no-build --output /app
 
+WORKDIR /tools
 # Install desired .NET CLI diagnostics tools
-RUN --mount=type=cache,id=tools,target=/tools \
-    dotnet tool install --tool-path /tools dotnet-trace
-RUN --mount=type=cache,id=tools,target=/tools \
-    dotnet tool install --tool-path /tools dotnet-counters
-RUN --mount=type=cache,id=tools,target=/tools \
-    dotnet tool install --tool-path /tools dotnet-dump
+RUN dotnet tool install --tool-path /tools dotnet-trace
+RUN dotnet tool install --tool-path /tools dotnet-counters
+RUN dotnet tool install --tool-path /tools dotnet-dump
+
 
 # Runtime image used to run the application
 FROM base AS runtime
@@ -65,6 +64,9 @@ WORKDIR /app
 COPY --from=sdk /app .
 
 # Copy diagnostics tools
-WORKDIR /tools
-COPY --from=sdk /tools .
+
+COPY --from=sdk /tools /root/.dotnet/tools
+
+
+
 ENTRYPOINT ["dotnet", "WebScheduler.Server.dll"]
