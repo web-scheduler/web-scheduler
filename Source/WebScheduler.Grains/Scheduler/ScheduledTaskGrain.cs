@@ -92,7 +92,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         }
         this.grainReminder = await this.GetReminder(ReminderName).ConfigureAwait(true);
         var now = DateTime.UtcNow;
-        var expression = CronExpression.Parse(this.scheduledTaskMetadata.State.CronExpression);
+        var expression = CronExpression.Parse(this.scheduledTaskMetadata.State.CronExpression, CronFormat.IncludeSeconds);
         var nextRun = expression.GetNextOccurrence(now);
         if (nextRun == null)
         {
