@@ -79,7 +79,7 @@ public class Program
                     .ConfigureAndValidateSingleton<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)))
                     .ConfigureAndValidateSingleton<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage))))
             //.UseSiloUnobservedExceptionsHandler()
-            .UseAdoNetClustering(options =>
+            .UseAdoNetClustering((AdoNetClusteringSiloOptions options )=>
             {
                 options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                 options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
@@ -107,9 +107,6 @@ public class Program
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                 })
-            //.ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(StorageHealthCheckGrain).Assembly).WithReferences())
-
-            //          .AddSimpleMessageStreamProvider(StreamProviderName.ScheduledTasks)
             .AddAdoNetGrainStorage(
                 GrainStorageProviderName.PubSubStore,
                 options =>

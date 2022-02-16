@@ -7,9 +7,12 @@
 
   <ItemGroup Label="Package References">
     <PackageReference Include="Cronos" Version="0.7.1" />
+    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="4.0.0-preview1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Orleans.Core" Version="4.0.0-preview1" />
     <PackageReference Include="Microsoft.Orleans.Runtime.Abstractions" Version="4.0.0-preview1" />
-    <PackageReference Include="Microsoft.Orleans.Sdk" Version="4.0.0-preview1" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
   </ItemGroup>
 

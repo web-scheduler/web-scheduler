@@ -32,6 +32,10 @@
     <PackageReference Include="Boxed.AspNetCore" Version="8.0.0" />
     <PackageReference Include="Cronos" Version="0.7.1" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="4.0.0-preview1" />
+    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="4.0.0-preview1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="4.0.0-preview1" />
     <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="4.0.0-preview1" />
     <PackageReference Include="MySql.Data" Version="8.0.28" />
@@ -39,7 +43,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
-    <PackageReference Include="Microsoft.Orleans.Sdk" Version="4.0.0-preview1" />
     <PackageReference Include="Microsoft.Orleans.Connections.Security" Version="4.0.0-preview1" />
     <PackageReference Include="Microsoft.Orleans.OrleansTelemetryConsumers.Linux" Version="4.0.0-preview1" />
     <PackageReference Include="Microsoft.Orleans.Server" Version="4.0.0-preview1" />

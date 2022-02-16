@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup Label="Build">
     <TargetFramework>net6.0</TargetFramework>
@@ -38,7 +38,10 @@
   </PropertyGroup>
 
   <ItemGroup Label="Package References">
-    <PackageReference Include="Microsoft.Orleans.Sdk" Version="4.0.0-preview1" />
+    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="4.0.0-preview1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="4.0.0-preview1" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" Version="1.1.1" Condition="'$(GitHub)' == 'true'" />
