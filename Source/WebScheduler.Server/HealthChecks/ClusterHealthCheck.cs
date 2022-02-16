@@ -29,16 +29,12 @@ public class ClusterHealthCheck : IHealthCheck
         try
         {
             var hosts = await manager.GetHosts().ConfigureAwait(false);
-            var count = hosts.Values.Count(x => x.IsUnavailable());
+            var count = hosts.Values.Count(x => x.IsTerminating() || x == SiloStatus.None);
             return count > 0 ? HealthCheckResult.Degraded(count + DegradedMessage) : HealthCheckResult.Healthy();
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception exception)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
             this.logger.FailedClusterStatusHealthCheck(exception);
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
             return HealthCheckResult.Unhealthy(FailedMessage, exception);
         }
     }

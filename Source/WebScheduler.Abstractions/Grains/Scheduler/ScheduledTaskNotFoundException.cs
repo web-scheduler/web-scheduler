@@ -1,15 +1,17 @@
 namespace WebScheduler.Abstractions.Grains.Scheduler;
 using System.Runtime.Serialization;
+using Orleans;
 
 /// <summary>
 /// ScheduledTaskNotFoundException occurs when a task does not exist.
 /// </summary>
-[Serializable]
+[GenerateSerializer]
 public class ScheduledTaskNotFoundException : Exception
 {
     /// <summary>
     /// The Id.
     /// </summary>
+    [Id(0)]
     public Guid Id { get; init; }
 
     /// <inheritdoc/>
@@ -28,6 +30,14 @@ public class ScheduledTaskNotFoundException : Exception
 
     /// <inheritdoc/>
     protected ScheduledTaskNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
+    {
+    }
+
+    internal ScheduledTaskNotFoundException(string? message) : base(message)
+    {
+    }
+
+    internal ScheduledTaskNotFoundException(string? message, Exception? innerException) : base(message, innerException)
     {
     }
 }

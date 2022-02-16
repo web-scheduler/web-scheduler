@@ -12,7 +12,6 @@ using WebScheduler.Abstractions.Constants;
 using WebScheduler.Server.Options;
 using Serilog;
 using Serilog.Extensions.Hosting;
-using WebScheduler.Grains.HealthChecks;
 using Boxed.AspNetCore;
 
 #pragma warning disable RCS1102 // Make class static.
@@ -35,9 +34,7 @@ public class Program
 
             return 0;
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception exception)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
             host!.LogApplicationTerminatedUnexpectedly(exception);
 
@@ -58,7 +55,7 @@ public class Program
                 (hostingContext, configurationBuilder) =>
                 {
                     hostingContext.HostingEnvironment.ApplicationName = AssemblyInformation.Current.Product;
-                    configurationBuilder.AddCustomConfiguration(hostingContext.HostingEnvironment, args);
+                    _ = configurationBuilder.AddCustomConfiguration(hostingContext.HostingEnvironment, args);
                 })
             .UseSerilog(ConfigureReloadableLogger)
             .UseDefaultServiceProvider(
@@ -68,26 +65,20 @@ public class Program
                     options.ValidateScopes = isDevelopment;
                     options.ValidateOnBuild = isDevelopment;
                 })
-            .UseOrleans(ConfigureSiloBuilder)
+            .ConfigureServices((ctx, services) => services.AddOrleans(x => ConfigureSiloBuilder(ctx, x)))
             .ConfigureWebHost(ConfigureWebHostBuilder)
             .UseConsoleLifetime();
 
     private static void ConfigureSiloBuilder(
-        Microsoft.Extensions.Hosting.HostBuilderContext context,
+        HostBuilderContext context,
         ISiloBuilder siloBuilder) =>
         siloBuilder
             .ConfigureServices(
-                (context, services) =>
-                {
-                    services.ConfigureAndValidateSingleton<ApplicationOptions>(context.Configuration);
-                    services.ConfigureAndValidateSingleton<ClusterMembershipOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.ClusterMembership)));
-                    services.ConfigureAndValidateSingleton<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)));
-                    services.ConfigureAndValidateSingleton<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage)));
-
-
-
-                })
-            .UseSiloUnobservedExceptionsHandler()
+                 services => services.ConfigureAndValidateSingleton<ApplicationOptions>(context.Configuration)
+                    .ConfigureAndValidateSingleton<ClusterMembershipOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.ClusterMembership)))
+                    .ConfigureAndValidateSingleton<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)))
+                    .ConfigureAndValidateSingleton<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage))))
+            //.UseSiloUnobservedExceptionsHandler()
             .UseAdoNetClustering(options =>
             {
                 options.Invariant = GetStorageOptions(context.Configuration).Invariant;
@@ -97,7 +88,6 @@ public class Program
                 EndpointOptions.DEFAULT_SILO_PORT,
                 EndpointOptions.DEFAULT_GATEWAY_PORT,
                 listenOnAnyHostAddress: !context.HostingEnvironment.IsDevelopment())
-            .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(StorageHealthCheckGrain).Assembly).WithReferences())
             .AddAdoNetGrainStorageAsDefault(options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
@@ -117,7 +107,9 @@ public class Program
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                 })
-            .AddSimpleMessageStreamProvider(StreamProviderName.ScheduledTasks)
+            //.ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(StorageHealthCheckGrain).Assembly).WithReferences())
+
+            //          .AddSimpleMessageStreamProvider(StreamProviderName.ScheduledTasks)
             .AddAdoNetGrainStorage(
                 GrainStorageProviderName.PubSubStore,
                 options =>
@@ -129,11 +121,11 @@ public class Program
                 })
             .UseIf(
                 RuntimeInformation.IsOSPlatform(OSPlatform.Linux),
-                x => x.UseLinuxEnvironmentStatistics())
-            .UseIf(
-                RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
-                x => x.UsePerfCounterEnvironmentStatistics())
-            .UseDashboard(options => options.BasePath = GetOrleansDashboardOptions(context.Configuration).BasePath);
+                x => x.UseLinuxEnvironmentStatistics());
+    //.UseIf(
+    //    RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
+    //    x => x.UsePerfCounterEnvironmentStatistics());
+    //.UseDashboard(options => options.BasePath = GetOrleansDashboardOptions(context.Configuration).BasePath);
 
     private static void ConfigureWebHostBuilder(IWebHostBuilder webHostBuilder) =>
         webHostBuilder
@@ -141,7 +133,7 @@ public class Program
                 (builderContext, options) =>
                 {
                     options.AddServerHeader = false;
-                    options.Configure(
+                    _ = options.Configure(
                         builderContext.Configuration.GetSection(nameof(ApplicationOptions.Kestrel)),
                         reloadOnChange: false);
                 })
@@ -166,7 +158,7 @@ public class Program
     /// <param name="services">The services.</param>
     /// <param name="configuration">The configuration.</param>
     private static void ConfigureReloadableLogger(
-        Microsoft.Extensions.Hosting.HostBuilderContext context,
+        HostBuilderContext context,
         IServiceProvider services,
         LoggerConfiguration configuration) =>
         configuration
@@ -185,6 +177,6 @@ public class Program
     private static StorageOptions GetStorageOptions(IConfiguration configuration) =>
         configuration.GetSection(nameof(ApplicationOptions.Storage)).Get<StorageOptions>();
 
-    private static OrleansDashboard.DashboardOptions GetOrleansDashboardOptions(IConfiguration configuration) =>
-        configuration.GetSection(nameof(ApplicationOptions.OrleansDashboard)).Get<OrleansDashboard.DashboardOptions>();
+    //private static OrleansDashboard.DashboardOptions GetOrleansDashboardOptions(IConfiguration configuration) =>
+    //    configuration.GetSection(nameof(ApplicationOptions.OrleansDashboard)).Get<OrleansDashboard.DashboardOptions>();
 }

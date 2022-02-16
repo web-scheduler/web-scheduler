@@ -1,15 +1,17 @@
 namespace WebScheduler.Abstractions.Grains.Scheduler;
 using System.Runtime.Serialization;
+using Orleans;
 
 /// <summary>
 /// ScheduledTaskAlreadyExists occurs when a task does already exist.
 /// </summary>
-[Serializable]
+[GenerateSerializer]
 public class ScheduledTaskAlreadyExistsException : Exception
 {
     /// <summary>
     /// The Id.
     /// </summary>
+    [Id(0)]
     public Guid Id { get; init; }
 
     /// <inheritdoc/>
@@ -28,6 +30,14 @@ public class ScheduledTaskAlreadyExistsException : Exception
 
     /// <inheritdoc/>
     protected ScheduledTaskAlreadyExistsException(SerializationInfo info, StreamingContext context) : base(info, context)
+    {
+    }
+
+    internal ScheduledTaskAlreadyExistsException(string? message) : base(message)
+    {
+    }
+
+    internal ScheduledTaskAlreadyExistsException(string? message, Exception? innerException) : base(message, innerException)
     {
     }
 }

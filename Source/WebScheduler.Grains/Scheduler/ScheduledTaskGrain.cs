@@ -11,18 +11,14 @@ using WebScheduler.Abstractions.Services;
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 {
     private readonly ILogger<ScheduledTaskGrain> logger;
-    private readonly IClusterClient clusterClient;
     private readonly IPersistentState<ScheduledTaskMetadata> scheduledTaskMetadata;
     private readonly IClockService clockService;
 
     private const string ReminderName = "ScheduledTaskExecutor";
-    private string? reminder;
-    private IGrainReminder grainReminder = default!;
 
-    public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger, IClusterClient clusterClient, [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)] IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition, IClockService clockService)
+    public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger, [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)] IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition, IClockService clockService)
     {
         this.logger = logger;
-        this.clusterClient = clusterClient;
         this.scheduledTaskMetadata = scheduledTaskDefinition;
         this.clockService = clockService;
     }
@@ -39,7 +35,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         this.scheduledTaskMetadata.State = scheduledTaskMetadata;
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
 
-        await this.SetupReminder().ConfigureAwait(true);
+        await this.SetupReminderAsync().ConfigureAwait(true);
         return this.scheduledTaskMetadata.State;
     }
 
@@ -70,29 +66,33 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 
         return this.scheduledTaskMetadata.State;
     }
-    public ValueTask SetReminderAsync(string reminder)
-    {
-        this.reminder = reminder;
-        return ValueTask.CompletedTask;
-    }
-
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         // Reminders are timers that are persisted to storage, so they are resilient if the node goes down. They
         // should not be used for high-frequency timers their period should be measured in minutes, hours or days.
-        await this.SetupReminder().ConfigureAwait(true);
-        await base.OnActivateAsync().ConfigureAwait(true);
+        await this.SetupReminderAsync().ConfigureAwait(true);
+        await base.OnActivateAsync(cancellationToken).ConfigureAwait(true);
     }
 
-    private async Task SetupReminder()
+    private async Task SetupReminderAsync()
     {
         if (!this.scheduledTaskMetadata.RecordExists)
         { // nothing to do
             return;
         }
-        this.grainReminder = await this.GetReminder(ReminderName).ConfigureAwait(true);
-        var now = DateTime.UtcNow;
-        var expression = CronExpression.Parse(this.scheduledTaskMetadata.State.CronExpression, CronFormat.IncludeSeconds);
+        CronExpression expression;
+        try
+        {
+            expression = CronExpression.Parse(this.scheduledTaskMetadata.State.CronExpression, CronFormat.IncludeSeconds);
+        }
+        catch (CronFormatException ex)
+        {
+            this.logger.InvalidCronExpression(ex, this.GetPrimaryKeyString(), this.scheduledTaskMetadata.State.CronExpression);
+            return;
+        }
+
+        var now = this.scheduledTaskMetadata.State.LastRunAt ?? DateTime.UtcNow;
+
         var nextRun = expression.GetNextOccurrence(now);
         if (nextRun == null)
         {
@@ -111,7 +111,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 
         var period = (secondRun - nextRun) ?? TimeSpan.FromMinutes(1);
 
-        this.grainReminder = await this.RegisterOrUpdateReminder(ReminderName, dueTime.Value, period).ConfigureAwait(true);
+        _ = await this.RegisterOrUpdateReminder(ReminderName, dueTime.Value, period).ConfigureAwait(true);
 
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
     }
@@ -123,14 +123,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
             this.scheduledTaskMetadata.State.LastRunAt = status.CurrentTickTime;
             await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
 
-            await this.SetupReminder().ConfigureAwait(true);
+            await this.SetupReminderAsync().ConfigureAwait(true);
         }
-    }
-
-    private Task PublishReminderAsync(string reminder)
-    {
-        var streamProvider = this.GetStreamProvider(StreamProviderName.ScheduledTasks);
-        var stream = streamProvider.GetStream<string>(Guid.Empty, StreamName.Reminder);
-        return stream.OnNextAsync(reminder);
     }
 }
