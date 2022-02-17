@@ -12,18 +12,16 @@ using WebScheduler.Abstractions.Services;
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 {
     private readonly ILogger<ScheduledTaskGrain> logger;
-    private readonly IClusterClient clusterClient;
     private readonly IPersistentState<ScheduledTaskMetadata> scheduledTaskMetadata;
     private readonly IClockService clockService;
     private readonly IHttpClientFactory httpClientFactory;
     private const string ReminderName = "ScheduledTaskExecutor";
     private CronExpression? expression;
 
-    public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger, IClusterClient clusterClient,
+    public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger,
         [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)] IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition, IClockService clockService, IHttpClientFactory httpClientFactory)
     {
         this.logger = logger;
-        this.clusterClient = clusterClient;
         this.scheduledTaskMetadata = scheduledTaskDefinition;
         this.clockService = clockService;
         this.httpClientFactory = httpClientFactory;
@@ -104,7 +102,6 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
             return;
         }
 
-
         var nextRun = this.scheduledTaskMetadata.State.NextRunAt ?? this.scheduledTaskMetadata.State.CreatedAt;
         if (nextRun == DateTime.MinValue)
         {
@@ -174,7 +171,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
                 return;
             }
 
-            await this.ProcessTaskAsync().ConfigureAwait(true);
+            // TODO: Log failures to task history
+            _ = await this.ProcessTaskAsync().ConfigureAwait(true);
 
             this.scheduledTaskMetadata.State.LastRunAt = status.CurrentTickTime;
             if (this.expression is null)
@@ -191,19 +189,13 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         }
     }
 
-    private async Task<bool> ProcessTaskAsync()
+    private async Task<bool> ProcessTaskAsync() => this.scheduledTaskMetadata.State.TriggerType switch
     {
-        switch (this.scheduledTaskMetadata.State.TriggerType)
-        {
-            case TaskTriggerType.HttpUri:
-                return await this.ProcessHttpTriggerAsync(HttpTaskTrigger.GetProperties(this.scheduledTaskMetadata.State.TaskProperties ?? new())).ConfigureAwait(true);
-            default:
-                // do nothing on unknown task type so we don't break.
-                return false;
-        }
-    }
+        TaskTriggerType.HttpUri => await this.ProcessHttpTriggerAsync(HttpTriggerProperties.FromKeyValuePair(this.scheduledTaskMetadata.State.TaskProperties ?? new())).ConfigureAwait(true),
+        _ => false,// do nothing on unknown task type so we don't break.
+    };
 
-    private async Task<bool> ProcessHttpTriggerAsync(HttpTaskTrigger.HttpTaskProperties httpTaskProperties)
+    private async Task<bool> ProcessHttpTriggerAsync(HttpTriggerProperties httpTaskProperties)
     {
         var client = this.httpClientFactory.CreateClient();
 
@@ -211,21 +203,14 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         try
         {
             var response = await client.SendAsync(requestMessage).ConfigureAwait(true);
-            response.EnsureSuccessStatusCode();
+            _ = response.EnsureSuccessStatusCode();
             return true;
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error executing HttpTrigger: {message}", ex.Message);
+            this.logger.LogError(ex, "Error executing HttpTrigger: {Message}", ex.Message);
         }
 
         return false;
-    }
-
-    private Task PublishReminderAsync(string reminder)
-    {
-        var streamProvider = this.GetStreamProvider(StreamProviderName.ScheduledTasks);
-        var stream = streamProvider.GetStream<string>(Guid.Empty, StreamName.Reminder);
-        return stream.OnNextAsync(reminder);
     }
 }
