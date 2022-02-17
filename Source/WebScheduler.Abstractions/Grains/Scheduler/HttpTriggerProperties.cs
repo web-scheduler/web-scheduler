@@ -10,7 +10,7 @@ using System.ComponentModel.DataAnnotations;
 public class HttpTriggerProperties
 {
     /// <summary>
-    /// Retrieves the <see cref="HttpTriggerProperties"/> from the <seealso cref="ScheduledTaskMetadata.TaskProperties"/>.
+    /// Retrieves the <see cref="HttpTriggerProperties"/> from the <seealso cref="ScheduledTaskMetadata.TriggerProperties"/>.
     /// </summary>
     /// <param name="taskProperties"></param>
     public HttpTriggerProperties(Dictionary<string, object> taskProperties)

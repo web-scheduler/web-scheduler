@@ -63,5 +63,5 @@ public class ScheduledTaskMetadata
     /// <summary>
     /// The properties for the task.
     /// </summary>
-    public Dictionary<string, object>? TaskProperties { get; set; } = new();
+    public Dictionary<string, object> TriggerProperties { get; set; } = new();
 }
