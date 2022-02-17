@@ -191,7 +191,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 
     private async Task<bool> ProcessTaskAsync() => this.scheduledTaskMetadata.State.TriggerType switch
     {
-        TaskTriggerType.HttpUri => await this.ProcessHttpTriggerAsync(HttpTriggerProperties.FromKeyValuePair(this.scheduledTaskMetadata.State.TaskProperties ?? new())).ConfigureAwait(true),
+        TaskTriggerType.HttpTrigger => await this.ProcessHttpTriggerAsync(HttpTriggerProperties.FromKeyValuePair(this.scheduledTaskMetadata.State.TaskProperties ?? new())).ConfigureAwait(true),
         _ => false,// do nothing on unknown task type so we don't break.
     };
 
@@ -199,7 +199,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
     {
         var client = this.httpClientFactory.CreateClient();
 
-        var requestMessage = new HttpRequestMessage(httpTaskProperties.HttpMethod, httpTaskProperties.EndpointUri);
+        var requestMessage = new HttpRequestMessage(httpTaskProperties.HttpMethod, httpTaskProperties.EndPointUrl);
         try
         {
             var response = await client.SendAsync(requestMessage).ConfigureAwait(true);

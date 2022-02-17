@@ -2,6 +2,7 @@ namespace WebScheduler.Abstractions.Grains.Scheduler;
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 /// <summary>
 /// Typed Http trigger properties
@@ -14,15 +15,15 @@ public class HttpTriggerProperties
     /// <param name="taskProperties"></param>
     public HttpTriggerProperties(Dictionary<string, object> taskProperties)
     {
-        if (taskProperties.TryGetValue(nameof(this.EndpointUri), out var endpointUri))
+        if (taskProperties.TryGetValue(nameof(this.EndPointUrl), out var endpointUri))
         {
             ArgumentNullException.ThrowIfNull(endpointUri, nameof(endpointUri));
-            this.EndpointUri = (Uri)endpointUri;
+            this.EndPointUrl = (Uri)endpointUri;
         }
         else
         {
             ArgumentNullException.ThrowIfNull(endpointUri, nameof(endpointUri));
-            this.EndpointUri = default!;
+            this.EndPointUrl = default!;
         }
 
         if (taskProperties.TryGetValue(nameof(this.HttpMethod), out var httpVerb))
@@ -40,11 +41,15 @@ public class HttpTriggerProperties
     /// <summary>
     /// The endpoint url.
     /// </summary>
-    public Uri EndpointUri { get; }
+    [Required]
+    [Display(Name = "URL", Description = "The URL to deliver the trigger to.")]
+    public Uri EndPointUrl { get; }
 
     /// <summary>
     /// The <see cref="HttpMethod"/> to use for the request.
     /// </summary>
+    [Required]
+    [Display(Name = "HTTP Method", Description = "The HTTP method to use for the request.")]
     public HttpMethod HttpMethod { get; }
 
     /// <summary>
@@ -67,7 +72,7 @@ public static class HttpTaskPropertiesExtensions
     /// <returns>A dictionary encoded from <paramref name="httpTaskProperties"/>.</returns>
     public static Dictionary<string, object> GetKeyValuePairs(this HttpTriggerProperties httpTaskProperties) => new()
     {
-        { nameof(httpTaskProperties.EndpointUri), httpTaskProperties.EndpointUri },
+        { nameof(httpTaskProperties.EndPointUrl), httpTaskProperties.EndPointUrl },
         { nameof(httpTaskProperties.HttpMethod), httpTaskProperties.HttpMethod },
     };
 }
