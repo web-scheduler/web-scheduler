@@ -18,8 +18,10 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
     private const string ReminderName = "ScheduledTaskExecutor";
     private string? reminder;
     private IGrainReminder grainReminder = default!;
+    private CronExpression? expression;
 
-    public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger, IClusterClient clusterClient, [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)] IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition, IClockService clockService)
+    public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger, IClusterClient clusterClient,
+        [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)] IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition, IClockService clockService)
     {
         this.logger = logger;
         this.clusterClient = clusterClient;
@@ -37,10 +39,23 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         }
 
         this.scheduledTaskMetadata.State = scheduledTaskMetadata;
+
+        this.BuildExpressionAndSetNextRunAt();
+
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
 
         await this.SetupReminder().ConfigureAwait(true);
         return this.scheduledTaskMetadata.State;
+    }
+
+    private void BuildExpressionAndSetNextRunAt()
+    {
+        // We should always have a valid CronExpression.
+        this.expression = CronExpression.Parse(this.scheduledTaskMetadata.State.CronExpression, CronFormat.IncludeSeconds);
+        if (this.scheduledTaskMetadata.State.NextRunAt is null)
+        {
+            this.scheduledTaskMetadata.State.NextRunAt = this.expression.GetNextOccurrence(this.scheduledTaskMetadata.State.CreatedAt, true);
+        }
     }
 
     /// <inheritdoc/>
@@ -78,8 +93,10 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 
     public override async Task OnActivateAsync()
     {
-        // Reminders are timers that are persisted to storage, so they are resilient if the node goes down. They
-        // should not be used for high-frequency timers their period should be measured in minutes, hours or days.
+        if (this.scheduledTaskMetadata.RecordExists)
+        {
+            this.BuildExpressionAndSetNextRunAt();
+        }
         await this.SetupReminder().ConfigureAwait(true);
         await base.OnActivateAsync().ConfigureAwait(true);
     }
@@ -90,29 +107,57 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         { // nothing to do
             return;
         }
+
         this.grainReminder = await this.GetReminder(ReminderName).ConfigureAwait(true);
-        var now = DateTime.UtcNow;
-        var expression = CronExpression.Parse(this.scheduledTaskMetadata.State.CronExpression, CronFormat.IncludeSeconds);
-        var nextRun = expression.GetNextOccurrence(now);
-        if (nextRun == null)
+
+        var nextRun = this.scheduledTaskMetadata.State.NextRunAt ?? this.scheduledTaskMetadata.State.CreatedAt;
+        if (nextRun == DateTime.MinValue)
         {
-            await this.UnregisterReminder(await this.GetReminder(ReminderName).ConfigureAwait(true)).ConfigureAwait(true);
+            await this.DisableReminder().ConfigureAwait(true);
             return;
         }
-        var dueTime = nextRun - now;
+
+        var dueTime = nextRun - this.clockService.UtcNow;
+
+        // cover the scenario when a timer was missed. It'll be negative here.
+        if (dueTime.TotalMilliseconds < 0)
+        {
+            return;
+        }
         this.scheduledTaskMetadata.State.NextRunAt = nextRun;
 
-        if (dueTime == null)
+        if (dueTime == TimeSpan.Zero)
         {
-            // nothing to do;
+            // nothing to do, no interval;
             return;
         }
-        var secondRun = expression.GetNextOccurrence(nextRun.Value) ?? nextRun.Value.AddMinutes(1);
 
-        var period = (secondRun - nextRun) ?? TimeSpan.FromMinutes(1);
+        if (dueTime.TotalMilliseconds > 0xfffffffe) // Max Timer Interval
+        {
+            dueTime = TimeSpan.FromMilliseconds(0xfffffffe);
+        }
 
-        this.grainReminder = await this.RegisterOrUpdateReminder(ReminderName, dueTime.Value, period).ConfigureAwait(true);
+        var secondRun = this.expression?.GetNextOccurrence(nextRun);
+        var interval = TimeSpan.FromMinutes(1);
+        if (secondRun is not null)
+        {
+            interval = secondRun.Value - nextRun;
+            if (interval.TotalMilliseconds > 0xfffffffe) // Max Timer Interval
+            {
+                interval = TimeSpan.FromMilliseconds(0xfffffffe);
+            }
+        }
+        this.grainReminder = await this.RegisterOrUpdateReminder(ReminderName, dueTime, interval).ConfigureAwait(true);
 
+        await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
+    }
+
+    private async Task DisableReminder()
+    {
+        await this.UnregisterReminder(await this.GetReminder(ReminderName).ConfigureAwait(true)).ConfigureAwait(true);
+        this.scheduledTaskMetadata.State.IsEnabled = false;
+        this.scheduledTaskMetadata.State.NextRunAt= null;
+        this.scheduledTaskMetadata.State.ModifiedAt = this.clockService.UtcNow;
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
     }
 
@@ -120,7 +165,30 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
     {
         if (string.Equals(ReminderName, reminderName, StringComparison.Ordinal))
         {
+            // We don't have a next run, so disable
+            if (this.scheduledTaskMetadata.State.NextRunAt is null)
+            {
+                await this.DisableReminder().ConfigureAwait(true);
+                return;
+            }
+
+            // If our interval exceeds max reminder dueTime, then we setup the reminder for the next interval
+            if (this.scheduledTaskMetadata.State.NextRunAt > this.clockService.UtcNow)
+            {
+                await this.SetupReminder().ConfigureAwait(true);
+                return;
+            }
+
+            // DO WORK HERE
+
             this.scheduledTaskMetadata.State.LastRunAt = status.CurrentTickTime;
+            if (this.expression is null)
+            {
+                await this.DisableReminder().ConfigureAwait(true);
+                return;
+            }
+
+            this.scheduledTaskMetadata.State.NextRunAt = this.expression?.GetNextOccurrence(status.CurrentTickTime);
             await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
 
             await this.SetupReminder().ConfigureAwait(true);
