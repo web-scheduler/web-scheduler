@@ -1,9 +1,7 @@
 namespace WebScheduler.Abstractions.Grains.Scheduler;
 
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
+using WebScheduler.Abstractions.Validators;
 
 /// <summary>
 /// Typed Http trigger properties
@@ -14,8 +12,7 @@ public class HttpTriggerProperties
     /// The endpoint url.
     /// </summary>
     [Display(Name = "URL", Description = "The URL to deliver the trigger to.")]
-    [Url]
-    [Required]
+    [UrlHttpOrHttps]
     public string EndPointUrl { get; set; } = default!;
 
     /// <summary>
