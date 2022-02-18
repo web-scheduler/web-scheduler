@@ -63,7 +63,7 @@
 
   </ItemGroup>
 
-  <ItemGroup Label="Project References" Condition=" '$(Configuration)' == 'Debug' ">
+  <ItemGroup Label="Project References">
     <ProjectReference Include="..\WebScheduler.Abstractions\WebScheduler.Abstractions.csproj" />
     <ProjectReference Include="..\WebScheduler.Grains\WebScheduler.Grains.csproj" />
   </ItemGroup>
