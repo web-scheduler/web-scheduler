@@ -1,5 +1,6 @@
 namespace WebScheduler.Grains.Scheduler;
 
+using System.Net.Http;
 using Cronos;
 using Microsoft.Extensions.Logging;
 using Orleans;
@@ -11,22 +12,19 @@ using WebScheduler.Abstractions.Services;
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 {
     private readonly ILogger<ScheduledTaskGrain> logger;
-    private readonly IClusterClient clusterClient;
     private readonly IPersistentState<ScheduledTaskMetadata> scheduledTaskMetadata;
     private readonly IClockService clockService;
-
+    private readonly IHttpClientFactory httpClientFactory;
     private const string ReminderName = "ScheduledTaskExecutor";
-    private string? reminder;
-    private IGrainReminder grainReminder = default!;
     private CronExpression? expression;
 
-    public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger, IClusterClient clusterClient,
-        [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)] IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition, IClockService clockService)
+    public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger,
+        [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)] IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition, IClockService clockService, IHttpClientFactory httpClientFactory)
     {
         this.logger = logger;
-        this.clusterClient = clusterClient;
         this.scheduledTaskMetadata = scheduledTaskDefinition;
         this.clockService = clockService;
+        this.httpClientFactory = httpClientFactory;
     }
 
     /// <inheritdoc/>
@@ -44,7 +42,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
 
-        await this.SetupReminder().ConfigureAwait(true);
+        await this.SetupReminderAsync().ConfigureAwait(true);
         return this.scheduledTaskMetadata.State;
     }
 
@@ -81,14 +79,10 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 
         this.scheduledTaskMetadata.State.IsDeleted = true;
         this.scheduledTaskMetadata.State.DeletedAt = this.clockService.UtcNow;
+        this.scheduledTaskMetadata.State.ModifiedAt = this.scheduledTaskMetadata.State.DeletedAt.Value;
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(false);
 
         return this.scheduledTaskMetadata.State;
-    }
-    public ValueTask SetReminderAsync(string reminder)
-    {
-        this.reminder = reminder;
-        return ValueTask.CompletedTask;
     }
 
     public override async Task OnActivateAsync()
@@ -97,27 +91,25 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         {
             this.BuildExpressionAndSetNextRunAt();
         }
-        await this.SetupReminder().ConfigureAwait(true);
+        await this.SetupReminderAsync().ConfigureAwait(true);
         await base.OnActivateAsync().ConfigureAwait(true);
     }
 
-    private async Task SetupReminder()
+    private async Task SetupReminderAsync()
     {
         if (!this.scheduledTaskMetadata.RecordExists)
         { // nothing to do
             return;
         }
 
-        this.grainReminder = await this.GetReminder(ReminderName).ConfigureAwait(true);
-
         var nextRun = this.scheduledTaskMetadata.State.NextRunAt ?? this.scheduledTaskMetadata.State.CreatedAt;
         if (nextRun == DateTime.MinValue)
         {
-            await this.DisableReminder().ConfigureAwait(true);
+            await this.DisableReminderAsync().ConfigureAwait(true);
             return;
         }
-
-        var dueTime = nextRun - this.clockService.UtcNow;
+        var now = this.clockService.UtcNow;
+        var dueTime = nextRun - now;
 
         // cover the scenario when a timer was missed. It'll be negative here.
         if (dueTime.TotalMilliseconds < 0)
@@ -147,16 +139,16 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
                 interval = TimeSpan.FromMilliseconds(0xfffffffe);
             }
         }
-        this.grainReminder = await this.RegisterOrUpdateReminder(ReminderName, dueTime, interval).ConfigureAwait(true);
-
+        _ = await this.RegisterOrUpdateReminder(ReminderName, dueTime, interval).ConfigureAwait(true);
+        this.scheduledTaskMetadata.State.ModifiedAt = now;
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
     }
 
-    private async Task DisableReminder()
+    private async Task DisableReminderAsync()
     {
         await this.UnregisterReminder(await this.GetReminder(ReminderName).ConfigureAwait(true)).ConfigureAwait(true);
         this.scheduledTaskMetadata.State.IsEnabled = false;
-        this.scheduledTaskMetadata.State.NextRunAt= null;
+        this.scheduledTaskMetadata.State.NextRunAt = null;
         this.scheduledTaskMetadata.State.ModifiedAt = this.clockService.UtcNow;
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
     }
@@ -168,37 +160,57 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
             // We don't have a next run, so disable
             if (this.scheduledTaskMetadata.State.NextRunAt is null)
             {
-                await this.DisableReminder().ConfigureAwait(true);
+                await this.DisableReminderAsync().ConfigureAwait(true);
                 return;
             }
-
+            var now = this.clockService.UtcNow;
             // If our interval exceeds max reminder dueTime, then we setup the reminder for the next interval
-            if (this.scheduledTaskMetadata.State.NextRunAt > this.clockService.UtcNow)
+            if (this.scheduledTaskMetadata.State.NextRunAt > now)
             {
-                await this.SetupReminder().ConfigureAwait(true);
+                await this.SetupReminderAsync().ConfigureAwait(true);
                 return;
             }
 
-            // DO WORK HERE
+            // TODO: Log failures to task history
+            _ = await this.ProcessTaskAsync().ConfigureAwait(true);
 
             this.scheduledTaskMetadata.State.LastRunAt = status.CurrentTickTime;
             if (this.expression is null)
             {
-                await this.DisableReminder().ConfigureAwait(true);
+                await this.DisableReminderAsync().ConfigureAwait(true);
                 return;
             }
 
             this.scheduledTaskMetadata.State.NextRunAt = this.expression?.GetNextOccurrence(status.CurrentTickTime);
+            this.scheduledTaskMetadata.State.ModifiedAt = now;
             await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
 
-            await this.SetupReminder().ConfigureAwait(true);
+            await this.SetupReminderAsync().ConfigureAwait(true);
         }
     }
 
-    private Task PublishReminderAsync(string reminder)
+    private async Task<bool> ProcessTaskAsync() => this.scheduledTaskMetadata.State.TriggerType switch
     {
-        var streamProvider = this.GetStreamProvider(StreamProviderName.ScheduledTasks);
-        var stream = streamProvider.GetStream<string>(Guid.Empty, StreamName.Reminder);
-        return stream.OnNextAsync(reminder);
+        TaskTriggerType.HttpTrigger => await this.ProcessHttpTriggerAsync(this.scheduledTaskMetadata.State.HttpTriggerProperties).ConfigureAwait(true),
+        _ => false,// do nothing on unknown task type so we don't break.
+    };
+
+    private async Task<bool> ProcessHttpTriggerAsync(HttpTriggerProperties httpTriggerProperties)
+    {
+        var client = this.httpClientFactory.CreateClient();
+
+        var requestMessage = new HttpRequestMessage(httpTriggerProperties.HttpMethod, httpTriggerProperties.EndPointUrl);
+        try
+        {
+            var response = await client.SendAsync(requestMessage).ConfigureAwait(true);
+            _ = response.EnsureSuccessStatusCode();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error executing HttpTrigger: {Message}", ex.Message);
+        }
+
+        return false;
     }
 }

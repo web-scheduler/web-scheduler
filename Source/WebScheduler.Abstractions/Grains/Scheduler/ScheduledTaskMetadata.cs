@@ -54,4 +54,14 @@ public class ScheduledTaskMetadata
     /// The Cron Expression
     /// </summary>
     public string CronExpression { get; set; } = "* * * * *";
+
+    /// <summary>
+    /// The trigger type for the task.
+    /// </summary>
+    public TaskTriggerType TriggerType { get; set; }
+
+    /// <summary>
+    /// The properties for the HttpTriggerTask.
+    /// </summary>
+    public HttpTriggerProperties HttpTriggerProperties { get; set; } = new();
 }
