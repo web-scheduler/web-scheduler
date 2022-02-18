@@ -48,7 +48,7 @@ services:
     value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
   - key: Serilog__MinimumLevel__Default
     scope: RUN_TIME
-    value: Verbose
+    value: Information
   health_check:
     http_path: /status/self
     port: 80
@@ -101,7 +101,7 @@ services:
     value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
   - key: Serilog__MinimumLevel__Default
     scope: RUN_TIME
-    value: Verbose
+    value: Information
   - key: ConnectionStrings__DataProtectionConnectionString
     value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=DataProtection;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
     scope: RUN_TIME

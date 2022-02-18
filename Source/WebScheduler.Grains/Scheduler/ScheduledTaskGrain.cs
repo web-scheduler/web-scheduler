@@ -6,23 +6,30 @@ using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Runtime;
 using WebScheduler.Abstractions.Constants;
+using WebScheduler.Abstractions.Grains;
 using WebScheduler.Abstractions.Grains.Scheduler;
 using WebScheduler.Abstractions.Services;
 
-public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
+public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenentScopedGrain<IScheduledTaskGrain>
 {
     private readonly ILogger<ScheduledTaskGrain> logger;
     private readonly IPersistentState<ScheduledTaskMetadata> scheduledTaskMetadata;
+    private readonly IPersistentState<TenentState> tenantState;
     private readonly IClockService clockService;
     private readonly IHttpClientFactory httpClientFactory;
     private const string ReminderName = "ScheduledTaskExecutor";
     private CronExpression? expression;
 
     public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger,
-        [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)] IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition, IClockService clockService, IHttpClientFactory httpClientFactory)
+        IClockService clockService, IHttpClientFactory httpClientFactory,
+        [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)]
+    IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition,
+        [PersistentState(StateName.TenentState, GrainStorageProviderName.ScheduledTaskMetadata)]
+    IPersistentState<TenentState> tenantState)
     {
         this.logger = logger;
         this.scheduledTaskMetadata = scheduledTaskDefinition;
+        this.tenantState = tenantState;
         this.clockService = clockService;
         this.httpClientFactory = httpClientFactory;
     }
@@ -35,7 +42,6 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
             this.logger.ScheduledTaskAlreadyExists(this.GetPrimaryKeyString());
             throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKey());
         }
-
         this.scheduledTaskMetadata.State = scheduledTaskMetadata;
 
         this.BuildExpressionAndSetNextRunAt();
@@ -212,5 +218,27 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
         }
 
         return false;
+    }
+
+    public async ValueTask<bool?> IsOwnedByAsync(Guid tenantId)
+    {
+        // If we have ownership data but no scheduledTask exists, delete ownership and allow it to be reclaimed
+        if (this.tenantState.RecordExists && !this.scheduledTaskMetadata.RecordExists)
+        {
+            await this.tenantState.ClearStateAsync().ConfigureAwait(true);
+            return null;
+        }
+
+        if (this.tenantState.RecordExists)
+        {
+            return this.tenantState.State.TenentId == tenantId;
+        }
+
+        return null;
+    }
+    public async ValueTask SetOwnedByAsync(Guid tenantId)
+    {
+        this.tenantState.State.TenentId = tenantId;
+        await this.tenantState.WriteStateAsync().ConfigureAwait(true);
     }
 }

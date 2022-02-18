@@ -1,12 +1,19 @@
 namespace WebScheduler.Abstractions.Constants;
 
+using WebScheduler.Abstractions.Grains;
+
 /// <summary>
-/// Grain state name for <see cref="ScheduledTaskMetadata"/>.
+/// Grain state names.
 /// </summary>
 public static class StateName
 {
     /// <summary>
-    /// The constant for ScheduledTaskMetadata Grain State.
+    /// The constant for <see cref="Grains.Scheduler.ScheduledTaskMetadata"/> Grain State.
     /// </summary>
     public const string ScheduledTaskMetadata = nameof(ScheduledTaskMetadata);
+
+    /// <summary>
+    /// The constant for <see cref="Grains.TenentState"/> Grain State.
+    /// </summary>
+    public const string TenentState = nameof(TenentState);
 }
