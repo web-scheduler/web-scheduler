@@ -191,7 +191,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable
 
     private async Task<bool> ProcessTaskAsync() => this.scheduledTaskMetadata.State.TriggerType switch
     {
-        TaskTriggerType.HttpTrigger => await this.ProcessHttpTriggerAsync(HttpTriggerProperties.FromKeyValuePair(this.scheduledTaskMetadata.State.TriggerProperties ?? new())).ConfigureAwait(true),
+        TaskTriggerType.HttpTrigger => await this.ProcessHttpTriggerAsync(this.scheduledTaskMetadata.State.HttpTriggerProperties).ConfigureAwait(true),
         _ => false,// do nothing on unknown task type so we don't break.
     };
 

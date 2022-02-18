@@ -61,7 +61,7 @@ public class ScheduledTaskMetadata
     public TaskTriggerType TriggerType { get; set; }
 
     /// <summary>
-    /// The properties for the task.
+    /// The properties for the HttpTriggerTask.
     /// </summary>
-    public Dictionary<string, object> TriggerProperties { get; set; } = new();
+    public HttpTriggerProperties HttpTriggerProperties { get; set; } = new();
 }

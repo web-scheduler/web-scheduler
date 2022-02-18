@@ -30,6 +30,7 @@ public class Startup
             .ConfigureOptions<ConfigureRequestLoggingOptions>()
             .AddRouting(options => options.LowercaseUrls = true)
             .AddCustomOpenTelemetryTracing(this.webHostEnvironment)
+            .AddHttpClient()
             .AddHealthChecks()
             .AddCheck<ClusterHealthCheck>(nameof(ClusterHealthCheck))
             .AddCheck<GrainHealthCheck>(nameof(GrainHealthCheck))
