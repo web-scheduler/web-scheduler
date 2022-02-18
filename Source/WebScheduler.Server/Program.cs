@@ -14,6 +14,7 @@ using Serilog;
 using Serilog.Extensions.Hosting;
 using WebScheduler.Grains.HealthChecks;
 using Boxed.AspNetCore;
+using WebScheduler.Server.Interceptors;
 
 #pragma warning disable RCS1102 // Make class static.
 public class Program
@@ -76,6 +77,7 @@ public class Program
         Microsoft.Extensions.Hosting.HostBuilderContext context,
         ISiloBuilder siloBuilder) =>
         siloBuilder
+            .AddIncomingGrainCallFilter<TenentValidationInterceptor>()
             .ConfigureServices(
                 (context, services) =>
                 {
@@ -83,8 +85,6 @@ public class Program
                     services.ConfigureAndValidateSingleton<ClusterMembershipOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.ClusterMembership)));
                     services.ConfigureAndValidateSingleton<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)));
                     services.ConfigureAndValidateSingleton<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage)));
-
-
 
                 })
             .UseSiloUnobservedExceptionsHandler()
@@ -105,6 +105,13 @@ public class Program
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
+               .AddAdoNetGrainStorage(GrainStorageProviderName.TenantState, options =>
+               {
+                   options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                   options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                   options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
+                   options.UseJsonFormat = true;
+               })
               .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadata, options =>
               {
                   options.Invariant = GetStorageOptions(context.Configuration).Invariant;
