@@ -31,6 +31,7 @@
   <ItemGroup Label="Package References">
     <PackageReference Include="Boxed.AspNetCore" Version="8.0.0" />
     <PackageReference Include="Cronos" Version="0.7.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.6.0" />
     <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.0" />
     <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.6.0" />
