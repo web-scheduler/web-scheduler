@@ -25,5 +25,5 @@ public class HttpTriggerProperties
     /// </summary>
     [Required]
     [Display(Name = "HTTP Method", Description = "The HTTP method to use for the request.")]
-    public HttpMethod HttpMethod { get; set; } = HttpMethod.Get;
+    public string HttpMethod { get; set; } = System.Net.Http.HttpMethod.Get.Method;
 }

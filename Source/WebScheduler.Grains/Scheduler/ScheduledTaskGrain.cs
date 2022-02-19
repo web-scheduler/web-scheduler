@@ -205,9 +205,11 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
     {
         var client = this.httpClientFactory.CreateClient();
 
-        var requestMessage = new HttpRequestMessage(httpTriggerProperties.HttpMethod, httpTriggerProperties.EndPointUrl);
         try
         {
+            var requestMessage = new HttpRequestMessage(new HttpMethod(httpTriggerProperties.HttpMethod), httpTriggerProperties.EndPointUrl);
+            // TODO: Implement other verbs and content body
+
             var response = await client.SendAsync(requestMessage).ConfigureAwait(true);
             _ = response.EnsureSuccessStatusCode();
             return true;

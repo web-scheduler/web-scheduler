@@ -1,7 +1,4 @@
 namespace WebScheduler.Abstractions.Constants;
-
-using WebScheduler.Abstractions.Grains;
-
 /// <summary>
 /// Grain state names.
 /// </summary>
