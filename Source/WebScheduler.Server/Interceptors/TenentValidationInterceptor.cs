@@ -22,7 +22,10 @@ public class TenentValidationInterceptor : IIncomingGrainCallFilter
     {
         // Hook calls to any grain other than ICustomFilterGrain implementations.e
         // This avoids potential infinite recursion when calling OnReceivedCall() below.
-        if (context.Grain is IScheduledTaskGrain && context.InterfaceMethod.ReflectedType != typeof(ITenentScopedGrain<>))
+        if (context.Grain is IScheduledTaskGrain &&
+            context.InterfaceMethod.ReflectedType != typeof(ITenentScopedGrain<>) &&
+            context.InterfaceMethod.ReflectedType != typeof(IGrainReminder)
+            )
         {
             var filterGrain = this.grainFactory.GetGrain<ITenentScopedGrain<IScheduledTaskGrain>>(context.Grain.GetPrimaryKeyString());
 
