@@ -24,7 +24,7 @@ public class TenentValidationInterceptor : IIncomingGrainCallFilter
         // This avoids potential infinite recursion when calling OnReceivedCall() below.
         if (context.Grain is IScheduledTaskGrain &&
             context.InterfaceMethod.ReflectedType != typeof(ITenentScopedGrain<>) &&
-            context.InterfaceMethod.ReflectedType != typeof(IGrainReminder)
+            context.InterfaceMethod.ReflectedType != typeof(IRemindable)
             )
         {
             var filterGrain = this.grainFactory.GetGrain<ITenentScopedGrain<IScheduledTaskGrain>>(context.Grain.GetPrimaryKeyString());
