@@ -9,6 +9,11 @@ using WebScheduler.Abstractions.Validators;
 public class HttpTriggerProperties
 {
     /// <summary>
+    /// The default constructor.
+    /// </summary>
+    public HttpTriggerProperties()
+    { }
+    /// <summary>
     /// The endpoint url.
     /// </summary>
     [Display(Name = "URL", Description = "The URL to deliver the trigger to.")]
