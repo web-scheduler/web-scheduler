@@ -25,4 +25,11 @@ public interface IScheduledTaskGrain : IGrainWithStringKey
     /// </summary>
     /// <returns>The scheduled task metadata.</returns>
     ValueTask<ScheduledTaskMetadata> GetAsync();
+
+    /// <summary>
+    /// Updates an existing scheduled task
+    /// </summary>
+    /// <param name="scheduledTaskMetadata">The scheduled task data to update with.</param>
+    /// <returns>The updated scheduled task.</returns>
+    ValueTask<ScheduledTaskMetadata> UpdateAsync(ScheduledTaskMetadata scheduledTaskMetadata);
 }

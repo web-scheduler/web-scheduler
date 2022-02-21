@@ -43,6 +43,12 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
             throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKey());
         }
         this.scheduledTaskMetadata.State = scheduledTaskMetadata;
+        if(this.scheduledTaskMetadata.State.CreatedAt == DateTime.MinValue)
+        {
+            this.scheduledTaskMetadata.State.CreatedAt = this.clockService.UtcNow;
+        }
+
+        this.scheduledTaskMetadata.State.ModifiedAt = this.scheduledTaskMetadata.State.CreatedAt;
 
         this.BuildExpressionAndSetNextRunAt();
 
@@ -52,13 +58,53 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
         return this.scheduledTaskMetadata.State;
     }
 
-    private void BuildExpressionAndSetNextRunAt()
+    /// <inheritdoc/>
+    public async ValueTask<ScheduledTaskMetadata> UpdateAsync(ScheduledTaskMetadata scheduledTaskMetadata)
+    {
+        if (!this.scheduledTaskMetadata.RecordExists)
+        {
+            this.logger.ScheduledTaskAlreadyExists(this.GetPrimaryKeyString());
+            throw new ScheduledTaskNotFoundException(this.GetPrimaryKey());
+        }
+
+        this.scheduledTaskMetadata.State.CronExpression = scheduledTaskMetadata.CronExpression;
+        this.scheduledTaskMetadata.State.Description = scheduledTaskMetadata.Description;
+        this.scheduledTaskMetadata.State.HttpTriggerProperties = scheduledTaskMetadata.HttpTriggerProperties;
+        this.scheduledTaskMetadata.State.Name = scheduledTaskMetadata.Name;
+        this.scheduledTaskMetadata.State.IsEnabled = scheduledTaskMetadata.IsEnabled;
+        this.scheduledTaskMetadata.State.TriggerType = scheduledTaskMetadata.TriggerType;
+        this.scheduledTaskMetadata.State.ModifiedAt = this.clockService.UtcNow;
+
+        this.BuildExpressionAndSetNextRunAt(resetNextRunAt: true);
+
+        await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
+
+        if (this.scheduledTaskMetadata.State.IsEnabled)
+        {
+            await this.SetupReminderAsync().ConfigureAwait(true);
+        }
+        else
+        {
+            await this.DisableReminderAsync(writeState: false).ConfigureAwait(true);
+        }
+
+        return this.scheduledTaskMetadata.State;
+    }
+
+    private void BuildExpressionAndSetNextRunAt(bool resetNextRunAt = false)
     {
         // We should always have a valid CronExpression.
         this.expression = CronExpression.Parse(this.scheduledTaskMetadata.State.CronExpression, CronFormat.IncludeSeconds);
-        if (this.scheduledTaskMetadata.State.NextRunAt is null)
+
+        if (!this.scheduledTaskMetadata.State.IsEnabled)
         {
-            this.scheduledTaskMetadata.State.NextRunAt = this.expression.GetNextOccurrence(this.scheduledTaskMetadata.State.CreatedAt, true);
+            this.scheduledTaskMetadata.State.NextRunAt = null;
+            return;
+        }
+
+        if (this.scheduledTaskMetadata.State.NextRunAt is null || resetNextRunAt)
+        {
+            this.scheduledTaskMetadata.State.NextRunAt = this.expression.GetNextOccurrence(this.scheduledTaskMetadata.State.ModifiedAt, true);
         }
     }
 
@@ -108,6 +154,11 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
             return;
         }
 
+        if (!this.scheduledTaskMetadata.State.IsEnabled)
+        {
+            await this.DisableReminderAsync().ConfigureAwait(true);
+        }
+
         var nextRun = this.scheduledTaskMetadata.State.NextRunAt ?? this.scheduledTaskMetadata.State.CreatedAt;
         if (nextRun == DateTime.MinValue)
         {
@@ -150,9 +201,17 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
         await this.scheduledTaskMetadata.WriteStateAsync().ConfigureAwait(true);
     }
 
-    private async Task DisableReminderAsync()
+    private async Task DisableReminderAsync(bool writeState = true)
     {
-        await this.UnregisterReminder(await this.GetReminder(ReminderName).ConfigureAwait(true)).ConfigureAwait(true);
+        var reminder = await this.GetReminder(ReminderName).ConfigureAwait(true);
+        if (reminder is not null)
+        {
+            await this.UnregisterReminder(reminder).ConfigureAwait(true);
+            if (!writeState)
+            {
+                return;
+            }
+        }
         this.scheduledTaskMetadata.State.IsEnabled = false;
         this.scheduledTaskMetadata.State.NextRunAt = null;
         this.scheduledTaskMetadata.State.ModifiedAt = this.clockService.UtcNow;

@@ -56,8 +56,8 @@ services:
   image:
     registry_type: DOCR
     repository: web-scheduler-server
-    tag: 0.1.10
-  instance_count: 3
+    tag: 0.1.23
+  instance_count: 5
   instance_size_slug: professional-xs
   internal_ports:
   - 11111
@@ -103,16 +103,16 @@ services:
     scope: RUN_TIME
     value: Information
   - key: ConnectionStrings__DataProtectionConnectionString
-    value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=DataProtection;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
     scope: RUN_TIME
+    value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=DataProtection;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
   health_check:
     http_path: /status
   http_port: 80
   image:
     registry_type: DOCR
     repository: web-scheduler-api
-    tag: 0.1.17
-  instance_count: 2
+    tag: 0.1.30
+  instance_count: 3
   instance_size_slug: professional-xs
   name: web-scheduler-api
   routes:
