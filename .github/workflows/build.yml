@@ -131,7 +131,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: "Download Artifact"
-        uses: actions/download-artifact@v2.1.0
+        uses: actions/download-artifact@v3
         with:
           name: "ubuntu-latest"
       - name: "Dotnet NuGet Add Source"
@@ -151,7 +151,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Download Artifact"
-        uses: actions/download-artifact@v2.1.0
+        uses: actions/download-artifact@v3
         with:
           name: "ubuntu-latest"
       - name: "Dotnet NuGet Push"
