@@ -33,7 +33,7 @@
     <PackageReference Include="Cronos" Version="0.7.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.6.0" />
-    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.0" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.1" />
     <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.6.0" />
     <PackageReference Include="MySql.Data" Version="8.0.28" />
     <PackageReference Include="OrleansDashboard" Version="3.6.1" />
@@ -47,7 +47,7 @@
     <PackageReference Include="Microsoft.Orleans.OrleansTelemetryConsumers.Counters" Version="3.6.0" />
     <PackageReference Include="Microsoft.Orleans.OrleansTelemetryConsumers.Linux" Version="3.6.0" />
     <PackageReference Include="Microsoft.Orleans.Server" Version="3.6.0" />
-    <PackageReference Include="Microsoft.Orleans.Transactions" Version="3.6.0" />
+    <PackageReference Include="Microsoft.Orleans.Transactions" Version="3.6.1" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.1.0" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.0.0-rc9.1" />
