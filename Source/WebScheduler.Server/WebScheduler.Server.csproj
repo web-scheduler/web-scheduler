@@ -59,7 +59,7 @@
     <PackageReference Include="Serilog.Enrichers.Span" Version="2.3.0+build.305" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
     <PackageReference Include="Serilog.Exceptions" Version="8.1.0+build.526" />
-    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.1.46" />
+    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.2.32" />
 
   </ItemGroup>
 
