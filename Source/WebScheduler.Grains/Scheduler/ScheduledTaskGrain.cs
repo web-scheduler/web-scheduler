@@ -43,7 +43,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
             throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKey());
         }
         this.scheduledTaskMetadata.State = scheduledTaskMetadata;
-        if(this.scheduledTaskMetadata.State.CreatedAt == DateTime.MinValue)
+        if (this.scheduledTaskMetadata.State.CreatedAt == DateTime.MinValue)
         {
             this.scheduledTaskMetadata.State.CreatedAt = this.clockService.UtcNow;
         }

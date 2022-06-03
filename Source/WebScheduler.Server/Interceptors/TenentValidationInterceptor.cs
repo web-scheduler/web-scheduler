@@ -29,7 +29,9 @@ public class TenentValidationInterceptor : IIncomingGrainCallFilter
         {
             var filterGrain = this.grainFactory.GetGrain<ITenentScopedGrain<IScheduledTaskGrain>>(context.Grain.GetPrimaryKeyString());
 
+#pragma warning disable CA2208 // Instantiate argument exceptions correctly
             var tenantId = RequestContext.Get(RequestContextKeys.TenentId) as string ?? throw new ArgumentNullException($"{RequestContextKeys.TenentId} not found in RequestContext");
+#pragma warning restore CA2208 // Instantiate argument exceptions correctly
 
             var tenantIdAsGuid = Guid.ParseExact(tenantId, "D");
             var valid = await filterGrain.IsOwnedByAsync(tenantIdAsGuid).ConfigureAwait(true);
