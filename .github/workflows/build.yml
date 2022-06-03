@@ -90,7 +90,7 @@ jobs:
         shell: pwsh
       - name: "Install QEMU"
         id: qemu
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       - name: "Available platforms"
         run: echo ${{steps.qemu.outputs.platforms}}
       - name: "Install Docker BuildX"
