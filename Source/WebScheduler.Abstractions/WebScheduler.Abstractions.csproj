@@ -47,4 +47,9 @@
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.2.32" />
+    <PackageReference Update="MinVer" Version="4.0.0" />
+  </ItemGroup>
+
 </Project>
