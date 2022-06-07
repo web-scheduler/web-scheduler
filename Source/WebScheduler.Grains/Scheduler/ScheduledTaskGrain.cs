@@ -282,7 +282,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error executing HttpTrigger: {Message}", ex.Message);
+            this.logger.ErrorExecutingHttpTrigger(ex, this.GetPrimaryKeyString());
         }
 
         return false;
