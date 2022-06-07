@@ -18,8 +18,8 @@ internal static partial class SchedulerLoggerExtensions
     public static partial void ScheduledTaskDoesNotExists(this ILogger logger, string id);
 
     [LoggerMessage(
-  EventId = 6002,
-  Level = LogLevel.Error,
-  Message = "Error executing HttpTrigger for {Id}.")]
+        EventId = 6002,
+        Level = LogLevel.Error,
+        Message = "Error executing HttpTrigger for {Id}.")]
     public static partial void ErrorExecutingHttpTrigger(this ILogger logger, Exception exception, string id);
 }

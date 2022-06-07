@@ -10,7 +10,7 @@ public static class StateName
     public const string ScheduledTaskMetadata = nameof(ScheduledTaskMetadata);
 
     /// <summary>
-    /// The constant for <see cref="Grains.TenentState"/> Grain State.
+    /// The constant for <see cref="Grains.TenantState"/> Grain State.
     /// </summary>
-    public const string TenentState = nameof(TenentState);
+    public const string TenantState = nameof(TenantState);
 }

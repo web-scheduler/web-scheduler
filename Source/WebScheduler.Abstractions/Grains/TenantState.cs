@@ -1,12 +1,12 @@
 namespace WebScheduler.Abstractions.Grains;
 
 /// <summary>
-/// Model for Tenent state.
+/// Model for Tenant state.
 /// </summary>
-public class TenentState
+public class TenantState
 {
     /// <summary>
-    ///  The tenentId.
+    ///  The tenantId.
     /// </summary>
-    public Guid TenentId { get; set; }
+    public Guid TenantId { get; set; }
 }
