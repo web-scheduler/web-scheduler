@@ -43,6 +43,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
             throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKey());
         }
         this.scheduledTaskMetadata.State = scheduledTaskMetadata;
+
         if (this.scheduledTaskMetadata.State.CreatedAt == DateTime.MinValue)
         {
             this.scheduledTaskMetadata.State.CreatedAt = this.clockService.UtcNow;
@@ -267,6 +268,12 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
         try
         {
             var requestMessage = new HttpRequestMessage(new HttpMethod(httpTriggerProperties.HttpMethod), httpTriggerProperties.EndPointUrl);
+
+            foreach (var header in httpTriggerProperties.Headers)
+            {
+                requestMessage.Headers.Add(header.Key, header.Value);
+            }
+
             // TODO: Implement other verbs and content body
 
             var response = await client.SendAsync(requestMessage).ConfigureAwait(true);
