@@ -10,11 +10,11 @@ using WebScheduler.Abstractions.Grains;
 using WebScheduler.Abstractions.Grains.Scheduler;
 using WebScheduler.Abstractions.Services;
 
-public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenentScopedGrain<IScheduledTaskGrain>
+public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>
 {
     private readonly ILogger<ScheduledTaskGrain> logger;
     private readonly IPersistentState<ScheduledTaskMetadata> scheduledTaskMetadata;
-    private readonly IPersistentState<TenentState> tenantState;
+    private readonly IPersistentState<TenantState> tenantState;
     private readonly IClockService clockService;
     private readonly IHttpClientFactory httpClientFactory;
     private const string ReminderName = "ScheduledTaskExecutor";
@@ -24,8 +24,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
         IClockService clockService, IHttpClientFactory httpClientFactory,
         [PersistentState(StateName.ScheduledTaskMetadata, GrainStorageProviderName.ScheduledTaskMetadata)]
     IPersistentState<ScheduledTaskMetadata> scheduledTaskDefinition,
-        [PersistentState(StateName.TenentState, GrainStorageProviderName.ScheduledTaskMetadata)]
-    IPersistentState<TenentState> tenantState)
+        [PersistentState(StateName.TenantState, GrainStorageProviderName.ScheduledTaskMetadata)]
+    IPersistentState<TenantState> tenantState)
     {
         this.logger = logger;
         this.scheduledTaskMetadata = scheduledTaskDefinition;
@@ -282,7 +282,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error executing HttpTrigger: {Message}", ex.Message);
+            this.logger.ErrorExecutingHttpTrigger(ex, this.GetPrimaryKeyString());
         }
 
         return false;
@@ -299,14 +299,14 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITene
 
         if (this.tenantState.RecordExists)
         {
-            return this.tenantState.State.TenentId == tenantId;
+            return this.tenantState.State.TenantId == tenantId;
         }
 
         return null;
     }
     public async ValueTask SetOwnedByAsync(Guid tenantId)
     {
-        this.tenantState.State.TenentId = tenantId;
+        this.tenantState.State.TenantId = tenantId;
         await this.tenantState.WriteStateAsync().ConfigureAwait(true);
     }
 }

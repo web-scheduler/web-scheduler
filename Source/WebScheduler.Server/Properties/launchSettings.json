@@ -22,7 +22,7 @@
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "http://localhost:8080/OrleansDashboard",
-      "applicationUrl": "http://localhost:5000",
+      "applicationUrl": "http://localhost:80",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Production"
       },

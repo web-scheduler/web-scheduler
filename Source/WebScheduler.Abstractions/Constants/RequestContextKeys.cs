@@ -8,7 +8,7 @@ using Orleans.Runtime;
 public static class RequestContextKeys
 {
     /// <summary>
-    /// The constant for TenentId
+    /// The constant for TenantId
     /// </summary>
-    public const string TenentId = nameof(TenentId);
+    public const string TenantId = nameof(TenantId);
 }

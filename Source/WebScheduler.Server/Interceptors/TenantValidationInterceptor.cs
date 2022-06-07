@@ -7,12 +7,12 @@ using WebScheduler.Abstractions.Constants;
 using WebScheduler.Abstractions.Grains;
 using WebScheduler.Abstractions.Grains.Scheduler;
 
-public class TenentValidationInterceptor : IIncomingGrainCallFilter
+public class TenantValidationInterceptor : IIncomingGrainCallFilter
 {
     private readonly IGrainFactory grainFactory;
-    private readonly ILogger<TenentValidationInterceptor> logger;
+    private readonly ILogger<TenantValidationInterceptor> logger;
 
-    public TenentValidationInterceptor(IGrainFactory grainFactory, ILogger<TenentValidationInterceptor> logger)
+    public TenantValidationInterceptor(IGrainFactory grainFactory, ILogger<TenantValidationInterceptor> logger)
     {
         this.grainFactory = grainFactory;
         this.logger = logger;
@@ -23,14 +23,14 @@ public class TenentValidationInterceptor : IIncomingGrainCallFilter
         // Hook calls to any grain other than ICustomFilterGrain implementations.e
         // This avoids potential infinite recursion when calling OnReceivedCall() below.
         if (context.Grain is IScheduledTaskGrain &&
-            context.InterfaceMethod.ReflectedType != typeof(ITenentScopedGrain<>) &&
+            context.InterfaceMethod.ReflectedType != typeof(ITenantScopedGrain<>) &&
             context.InterfaceMethod.ReflectedType != typeof(IRemindable)
             )
         {
-            var filterGrain = this.grainFactory.GetGrain<ITenentScopedGrain<IScheduledTaskGrain>>(context.Grain.GetPrimaryKeyString());
+            var filterGrain = this.grainFactory.GetGrain<ITenantScopedGrain<IScheduledTaskGrain>>(context.Grain.GetPrimaryKeyString());
 
 #pragma warning disable CA2208 // Instantiate argument exceptions correctly
-            var tenantId = RequestContext.Get(RequestContextKeys.TenentId) as string ?? throw new ArgumentNullException($"{RequestContextKeys.TenentId} not found in RequestContext");
+            var tenantId = RequestContext.Get(RequestContextKeys.TenantId) as string ?? throw new ArgumentNullException($"{RequestContextKeys.TenantId} not found in RequestContext");
 #pragma warning restore CA2208 // Instantiate argument exceptions correctly
 
             var tenantIdAsGuid = Guid.ParseExact(tenantId, "D");
@@ -49,7 +49,7 @@ public class TenentValidationInterceptor : IIncomingGrainCallFilter
                 return;
             }
 
-            this.logger.LogWarning("Tenent {TenentId} is not authorized to access {ScheduledTaskId}", tenantId, context.Grain.GetPrimaryKeyString());
+            this.logger.TenantUnauthorized(tenantId, context.Grain.GetPrimaryKeyString());
             throw new UnauthorizedAccessException();
         }
 
