@@ -77,7 +77,7 @@ public class Program
         Microsoft.Extensions.Hosting.HostBuilderContext context,
         ISiloBuilder siloBuilder) =>
         siloBuilder
-            .AddIncomingGrainCallFilter<TenentValidationInterceptor>()
+            .AddIncomingGrainCallFilter<TenantValidationInterceptor>()
             .ConfigureServices(
                 (context, services) =>
                 {

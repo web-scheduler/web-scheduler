@@ -7,12 +7,12 @@ using WebScheduler.Abstractions.Constants;
 using WebScheduler.Abstractions.Grains;
 using WebScheduler.Abstractions.Grains.Scheduler;
 
-public class TenentValidationInterceptor : IIncomingGrainCallFilter
+public class TenantValidationInterceptor : IIncomingGrainCallFilter
 {
     private readonly IGrainFactory grainFactory;
-    private readonly ILogger<TenentValidationInterceptor> logger;
+    private readonly ILogger<TenantValidationInterceptor> logger;
 
-    public TenentValidationInterceptor(IGrainFactory grainFactory, ILogger<TenentValidationInterceptor> logger)
+    public TenantValidationInterceptor(IGrainFactory grainFactory, ILogger<TenantValidationInterceptor> logger)
     {
         this.grainFactory = grainFactory;
         this.logger = logger;
