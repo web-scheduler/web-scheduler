@@ -28,7 +28,7 @@ WORKDIR /app
 EXPOSE 80 11111 30000
 
 # SDK image used to build and publish the application
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS sdk
+FROM mcr.microsoft.com/dotnet/sdk:6.0.300-alpine3.15-amd64 AS sdk
 # To use the debug build configuration pass --build-arg Configuration=Debug
 ARG Configuration=Release
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=true \
