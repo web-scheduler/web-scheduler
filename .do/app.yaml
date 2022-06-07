@@ -110,7 +110,7 @@ services:
     value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=DataProtection;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
   health_check:
     http_path: /status
-    initial_delay_seconds: 60
+    initial_delay_seconds: 120
   http_port: 80
   image:
     registry_type: DOCR
