@@ -10,7 +10,7 @@ public class ScheduledTaskAlreadyExistsException : Exception
     /// <summary>
     /// The Id.
     /// </summary>
-    public Guid Id { get; init; }
+    public string Id { get; init; } = string.Empty;
 
     /// <inheritdoc/>
     protected ScheduledTaskAlreadyExistsException()
@@ -21,10 +21,10 @@ public class ScheduledTaskAlreadyExistsException : Exception
     /// By Id
     /// </summary>
     /// <param name="id">the Id</param>
-    public ScheduledTaskAlreadyExistsException(Guid id) : base($"Scheduled task with id {id} already exists.") => this.Id = id;
+    public ScheduledTaskAlreadyExistsException(string id) : base($"Scheduled task with id {id} already exists.") => this.Id = id;
 
     /// <inheritdoc/>
-    public ScheduledTaskAlreadyExistsException(Guid id, Exception? innerException) : base($"Scheduled task with id {id} already exists.", innerException) => this.Id = id;
+    public ScheduledTaskAlreadyExistsException(string id, Exception? innerException) : base($"Scheduled task with id {id} already exists.", innerException) => this.Id = id;
 
     /// <inheritdoc/>
     protected ScheduledTaskAlreadyExistsException(SerializationInfo info, StreamingContext context) : base(info, context)
