@@ -5,6 +5,7 @@ using Cronos;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Runtime;
+using System.Text;
 using WebScheduler.Abstractions.Constants;
 using WebScheduler.Abstractions.Grains;
 using WebScheduler.Abstractions.Grains.Scheduler;
@@ -265,16 +266,43 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     {
         var client = this.httpClientFactory.CreateClient();
 
+        StringContent? content = null;
+
         try
         {
             var requestMessage = new HttpRequestMessage(new HttpMethod(httpTriggerProperties.HttpMethod), httpTriggerProperties.EndPointUrl);
 
+            // Add headers
+            var contentType = string.Empty;
             foreach (var header in httpTriggerProperties.Headers)
             {
+                // Content-Type is one of the special headers. Let's pull it out as it needs to be used as the Media Content Type on the request body.
+                if (header.Key.Equals(Microsoft.Net.Http.Headers.HeaderNames.ContentType, StringComparison.OrdinalIgnoreCase))
+                {
+                    contentType = header.Value;
+                    continue;
+                }
+
                 requestMessage.Headers.Add(header.Key, header.Value);
             }
 
-            // TODO: Implement other verbs and content body
+            // Add body if it exists
+            if (httpTriggerProperties.RequestBody is not null &&
+                (requestMessage.Method == HttpMethod.Post ||
+                requestMessage.Method == HttpMethod.Put ||
+                requestMessage.Method == HttpMethod.Patch))
+            {
+                if (contentType != string.Empty)
+                {
+                    content = new StringContent(httpTriggerProperties.RequestBody, Encoding.UTF8, contentType);
+                }
+                else
+                {
+                    content = new StringContent(httpTriggerProperties.RequestBody, Encoding.UTF8);
+                }
+
+                requestMessage.Content = content;
+            }
 
             var response = await client.SendAsync(requestMessage).ConfigureAwait(true);
             _ = response.EnsureSuccessStatusCode();
@@ -283,6 +311,13 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         catch (Exception ex)
         {
             this.logger.ErrorExecutingHttpTrigger(ex, this.GetPrimaryKeyString());
+        }
+        finally
+        {
+            if (content is not null)
+            {
+                content.Dispose();
+            }
         }
 
         return false;
