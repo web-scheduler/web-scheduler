@@ -32,6 +32,13 @@ public class HttpTriggerProperties
     /// </summary>
     [Display(Name = "Headers", Description = "The Request Headers to use for the request.")]
     public List<Header> Headers { get; set; } = new();
+
+    /// <summary>
+    /// The request body to send. Only valid for POST, PUT, and PATCH methods.
+    /// </summary>
+    [Required]
+    [Display(Name = "Request Body", Description = "The request body to send. Only valid for POST, PUT, and PATCH methods.")]
+    public string? RequestBody { get; set; }
 }
 
 /// <summary>
