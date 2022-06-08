@@ -40,7 +40,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         if (this.scheduledTaskMetadata.RecordExists)
         {
             this.logger.ScheduledTaskAlreadyExists(this.GetPrimaryKeyString());
-            throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKey());
+            throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKeyString());
         }
         this.scheduledTaskMetadata.State = scheduledTaskMetadata;
 
@@ -65,7 +65,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         if (!this.scheduledTaskMetadata.RecordExists)
         {
             this.logger.ScheduledTaskAlreadyExists(this.GetPrimaryKeyString());
-            throw new ScheduledTaskNotFoundException(this.GetPrimaryKey());
+            throw new ScheduledTaskNotFoundException(this.GetPrimaryKeyString());
         }
 
         this.scheduledTaskMetadata.State.CronExpression = scheduledTaskMetadata.CronExpression;
@@ -115,7 +115,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         if (!this.scheduledTaskMetadata.RecordExists)
         {
             this.logger.ScheduledTaskDoesNotExists(this.GetPrimaryKeyString());
-            throw new ScheduledTaskNotFoundException(this.GetPrimaryKey());
+            throw new ScheduledTaskNotFoundException(this.GetPrimaryKeyString());
         }
 
         return new ValueTask<ScheduledTaskMetadata>(this.scheduledTaskMetadata.State);
@@ -127,7 +127,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         if (!this.scheduledTaskMetadata.RecordExists)
         {
             this.logger.ScheduledTaskDoesNotExists(this.GetPrimaryKeyString());
-            throw new ScheduledTaskNotFoundException(this.GetPrimaryKey());
+            throw new ScheduledTaskNotFoundException(this.GetPrimaryKeyString());
         }
 
         this.scheduledTaskMetadata.State.IsDeleted = true;
