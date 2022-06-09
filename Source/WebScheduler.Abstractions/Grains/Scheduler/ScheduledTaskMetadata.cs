@@ -41,11 +41,6 @@ public class ScheduledTaskMetadata
     public bool IsEnabled { get; set; }
 
     /// <summary>
-    /// Specifies if the task is deleted.
-    /// </summary>
-    public bool IsDeleted { get; set; }
-
-    /// <summary>
     /// The time the scheduled task was deleted at.
     /// </summary>
     public DateTime? DeletedAt { get; set; }

@@ -31,14 +31,12 @@ public class Program
             host = CreateHostBuilder(args).Build();
 
             host.LogApplicationStarted();
-            await host.RunAsync().ConfigureAwait(false);
+            await host.RunAsync().ConfigureAwait(true);
             host.LogApplicationStopped();
 
             return 0;
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception exception)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
             host!.LogApplicationTerminatedUnexpectedly(exception);
 
@@ -59,7 +57,7 @@ public class Program
                 (hostingContext, configurationBuilder) =>
                 {
                     hostingContext.HostingEnvironment.ApplicationName = AssemblyInformation.Current.Product;
-                    configurationBuilder.AddCustomConfiguration(hostingContext.HostingEnvironment, args);
+                    _ = configurationBuilder.AddCustomConfiguration(hostingContext.HostingEnvironment, args);
                 })
             .UseSerilog(ConfigureReloadableLogger)
             .UseDefaultServiceProvider(
@@ -81,11 +79,10 @@ public class Program
             .ConfigureServices(
                 (context, services) =>
                 {
-                    services.ConfigureAndValidateSingleton<ApplicationOptions>(context.Configuration);
-                    services.ConfigureAndValidateSingleton<ClusterMembershipOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.ClusterMembership)));
-                    services.ConfigureAndValidateSingleton<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)));
-                    services.ConfigureAndValidateSingleton<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage)));
-
+                    _ = services.ConfigureAndValidateSingleton<ApplicationOptions>(context.Configuration);
+                    _ = services.ConfigureAndValidateSingleton<ClusterMembershipOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.ClusterMembership)));
+                    _ = services.ConfigureAndValidateSingleton<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)));
+                    _ = services.ConfigureAndValidateSingleton<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage)));
                 })
             .UseSiloUnobservedExceptionsHandler()
             .UseAdoNetClustering(options =>
@@ -105,14 +102,14 @@ public class Program
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-               .AddAdoNetGrainStorage(GrainStorageProviderName.TenantState, options =>
-               {
-                   options.Invariant = GetStorageOptions(context.Configuration).Invariant;
-                   options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
-                   options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
-                   options.UseJsonFormat = true;
-               })
-              .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadata, options =>
+              .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskState, options =>
+              {
+                  options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                  options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                  options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
+                  options.UseJsonFormat = true;
+              })
+              .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadataHistory, options =>
               {
                   options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                   options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
@@ -148,7 +145,7 @@ public class Program
                 (builderContext, options) =>
                 {
                     options.AddServerHeader = false;
-                    options.Configure(
+                    _ = options.Configure(
                         builderContext.Configuration.GetSection(nameof(ApplicationOptions.Kestrel)),
                         reloadOnChange: false);
                 })

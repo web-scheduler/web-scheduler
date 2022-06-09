@@ -18,7 +18,7 @@ public interface IScheduledTaskGrain : IGrainWithStringKey
     /// Deletes a Scheduled Task Instance.
     /// </summary>
     /// <returns>The deleted task metadata.</returns>
-    ValueTask<ScheduledTaskMetadata> DeleteAsync();
+    ValueTask DeleteAsync();
 
     /// <summary>
     /// Returns the scheduled task.
