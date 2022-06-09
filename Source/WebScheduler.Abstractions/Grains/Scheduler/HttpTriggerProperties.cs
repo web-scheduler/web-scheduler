@@ -36,7 +36,6 @@ public class HttpTriggerProperties
     /// <summary>
     /// The request body to send. Only valid for POST, PUT, and PATCH methods.
     /// </summary>
-    [Required]
     [Display(Name = "Request Body", Description = "The request body to send. Only valid for POST, PUT, and PATCH methods.")]
     public string? RequestBody { get; set; }
 }
