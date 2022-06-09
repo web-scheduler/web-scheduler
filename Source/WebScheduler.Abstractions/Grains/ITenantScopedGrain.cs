@@ -17,11 +17,4 @@ public interface ITenantScopedGrain<TGrainInterface> : IGrainWithStringKey
     /// <param name="tenantId">The tenat id</param>
     /// <returns>True if owned, false if not, null if unset.</returns>
     ValueTask<bool?> IsOwnedByAsync(Guid tenantId);
-
-    /// <summary>
-    /// Sets ownership of a resource.
-    /// </summary>
-    /// <param name="tenantId">The owner tenant id to set</param>
-    /// <returns>A valueTask.</returns>
-    ValueTask SetOwnedByAsync(Guid tenantId);
 }

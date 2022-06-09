@@ -28,7 +28,7 @@ public class ClusterHealthCheck : IHealthCheck
 
         try
         {
-            var hosts = await manager.GetHosts().ConfigureAwait(false);
+            var hosts = await manager.GetHosts().ConfigureAwait(true);
             var count = hosts.Values.Count(x => x.IsUnavailable());
             return count > 0 ? HealthCheckResult.Degraded(count + DegradedMessage) : HealthCheckResult.Healthy();
         }

@@ -21,10 +21,10 @@ public class ScheduledTaskNotFoundException : Exception
     /// By Id
     /// </summary>
     /// <param name="id">the Id</param>
-    public ScheduledTaskNotFoundException(string id) : base($"Scheduled task with id {id} already exists.") => this.Id = id;
+    public ScheduledTaskNotFoundException(string id) : base($"Scheduled task with id {id} does not exist.") => this.Id = id;
 
     /// <inheritdoc/>
-    public ScheduledTaskNotFoundException(string id, Exception? innerException) : base($"Scheduled task with id {id} already exists.", innerException) => this.Id = id;
+    public ScheduledTaskNotFoundException(string id, Exception? innerException) : base($"Scheduled task with id {id} does not exist.", innerException) => this.Id = id;
 
     /// <inheritdoc/>
     protected ScheduledTaskNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
