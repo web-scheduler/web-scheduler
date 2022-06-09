@@ -6,14 +6,14 @@ namespace WebScheduler.Abstractions.Constants;
 public static class GrainStorageProviderName
 {
     /// <summary>
-    /// The storage provider name for ScheduledTaskMetadata.
+    /// The storage provider name for ScheduledTaskState.
     /// </summary>
-    public const string ScheduledTaskMetadata = nameof(ScheduledTaskMetadata);
+    public const string ScheduledTaskState = nameof(ScheduledTaskState);
 
     /// <summary>
-    /// The storage provider name for ScheduledTaskMetadata.
+    /// The storage provider name for ScheduledTaskMetadataHistory.
     /// </summary>
-    public const string TenantState = nameof(TenantState);
+    public const string ScheduledTaskMetadataHistory = nameof(ScheduledTaskMetadataHistory);
 
     /// <summary>
     /// The storage provider name for PubSubStore.

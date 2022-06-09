@@ -28,7 +28,7 @@ public class StorageHealthCheck : IHealthCheck
         {
             // Call this grain with a random key each time. This grain then deactivates itself, so there is a new
             // instance created and destroyed each time.
-            await this.client.GetGrain<IStorageHealthCheckGrain>(Guid.NewGuid()).CheckAsync().ConfigureAwait(false);
+            await this.client.GetGrain<IStorageHealthCheckGrain>(Guid.NewGuid()).CheckAsync().ConfigureAwait(true);
         }
 #pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception exception)

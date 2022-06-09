@@ -36,13 +36,14 @@ public class TenantValidationInterceptor : IIncomingGrainCallFilter
             var tenantIdAsGuid = Guid.ParseExact(tenantId, "D");
             var valid = await filterGrain.IsOwnedByAsync(tenantIdAsGuid).ConfigureAwait(true);
 
-            if (valid is null)
+            // Only claim a ScheduledTaskId for a Create
+            if (valid is null && context.ImplementationMethod.Name == nameof(IScheduledTaskGrain.CreateAsync))
             {
-                await filterGrain.SetOwnedByAsync(tenantIdAsGuid).ConfigureAwait(true);
                 await context.Invoke().ConfigureAwait(true);
                 return;
             }
-            else if (valid.Value)
+
+            if (valid == true)
             {
                 // Continue invoking the call on the target grain.
                 await context.Invoke().ConfigureAwait(true);

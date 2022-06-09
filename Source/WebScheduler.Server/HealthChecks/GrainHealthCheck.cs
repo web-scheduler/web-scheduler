@@ -26,7 +26,7 @@ public class GrainHealthCheck : IHealthCheck
     {
         try
         {
-            await this.client.GetGrain<ILocalHealthCheckGrain>(Guid.Empty).CheckAsync().ConfigureAwait(false);
+            await this.client.GetGrain<ILocalHealthCheckGrain>(Guid.Empty).CheckAsync().ConfigureAwait(true);
         }
 #pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception exception)
