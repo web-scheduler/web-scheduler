@@ -369,8 +369,6 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 // Recorder failed to record.
                 if (!result)
                 {
-                    // Add the item back to the list and bail out this cycle, we'll get them eventually.
-                    this.taskState.State.HistoryBuffer.Insert(0, historyRecord);
                     return;
                 }
             }
