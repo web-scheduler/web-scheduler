@@ -277,65 +277,58 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
     public async Task ReceiveReminder(string reminderName, TickStatus status)
     {
-        if (string.Equals(ScheduledTaskReminderName, reminderName, StringComparison.Ordinal))
+        switch (reminderName)
         {
-            // We don't have a next run, so disable
-            if (this.taskState.State.Task.NextRunAt is null)
-            {
-                await this.DisableReminderAsync().ConfigureAwait(true);
-                return;
-            }
-            var now = this.clockService.UtcNow;
-            // If our interval exceeds max reminder dueTime, then we setup the reminder for the next interval
-            if (this.taskState.State.Task.NextRunAt > now)
-            {
+            case ScheduledTaskReminderName:
+                // We don't have a next run, so disable
+                if (this.taskState.State.Task.NextRunAt is null)
+                {
+                    await this.DisableReminderAsync().ConfigureAwait(true);
+                    break;
+                }
+                var now = this.clockService.UtcNow;
+                // If our interval exceeds max reminder dueTime, then we setup the reminder for the next interval
+                if (this.taskState.State.Task.NextRunAt > now)
+                {
+                    await this.SetupReminderAsync().ConfigureAwait(true);
+                    break;
+                }
+
+                // TODO: Log failures to task history
+                _ = await this.ProcessTaskAsync().ConfigureAwait(true);
+
+                this.taskState.State.Task.LastRunAt = status.CurrentTickTime;
+                if (this.expression is null)
+                {
+                    await this.DisableReminderAsync().ConfigureAwait(true);
+                    break;
+                }
+
+                this.taskState.State.Task.NextRunAt = this.expression?.GetNextOccurrence(status.CurrentTickTime);
+                this.taskState.State.Task.ModifiedAt = now;
+                await this.taskState.WriteStateAsync().ConfigureAwait(true);
+
                 await this.SetupReminderAsync().ConfigureAwait(true);
-                return;
-            }
-
-            // TODO: Log failures to task history
-            _ = await this.ProcessTaskAsync().ConfigureAwait(true);
-
-            this.taskState.State.Task.LastRunAt = status.CurrentTickTime;
-            if (this.expression is null)
-            {
-                await this.DisableReminderAsync().ConfigureAwait(true);
-                return;
-            }
-
-            this.taskState.State.Task.NextRunAt = this.expression?.GetNextOccurrence(status.CurrentTickTime);
-            this.taskState.State.Task.ModifiedAt = now;
-            await this.taskState.WriteStateAsync().ConfigureAwait(true);
-
-            await this.SetupReminderAsync().ConfigureAwait(true);
-            return;
+                break;
+            case HistoryReminderName:
+                // Let's process the history queue
+                await this.ProcessHistoryQueueAsync(batchSize: 10).ConfigureAwait(true);
+                break;
         }
 
-        if (string.Equals(HistoryReminderName, reminderName, StringComparison.Ordinal))
+        // Ensure History buffer can empty out
+        if (this.taskState.State.HistoryBuffer.Count == 0)
         {
-            // if we hit here and have no state; Nothing to do here except cancel the reminder.
-            if (!this.taskState.RecordExists || this.taskState.State.Task.CreatedAt == DateTime.MinValue)
-            {
-                this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
+            this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
 
-                await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
-                return;
-            }
+            // Disable the reminder if there is no more work to do. It'll get re-registered when new records are available.
+            await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
 
-            // Let's process the history queue
-            await this.ProcessHistoryQueueAsync(batchSize: 10).ConfigureAwait(true);
-
-            if (this.taskState.State.HistoryBuffer.Count == 0)
-            {
-                this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
-
-                // Disable the reminder if there is no more work to do. It'll get re-registered when new records are available.
-                await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
-
-                return;
-            }
             return;
         }
+
+        // If HistoryBuffer isn't empty, let's ensure our reminder.
+        this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1)).ConfigureAwait(true);
     }
 
     private async ValueTask ProcessHistoryQueueAsync(int batchSize)
