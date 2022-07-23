@@ -12,6 +12,7 @@ using WebScheduler.Abstractions.Services;
 using WebScheduler.Abstractions.Grains.Scheduler;
 using WebScheduler.Abstractions.Grains.History;
 using System.Text.Json;
+using Orleans.Concurrency;
 
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>
 {
@@ -89,26 +90,17 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             Operation = operationType
         });
 
-        this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1)).ConfigureAwait(true);
-
-        // For Delete operations, we want to flush the queue prior to deletion. You won't be able to delete until this finishes sucessfully.
+        // Because the history of the task is stored in a queue outside of the task, we clear the state of the task after we log the history information.
         if (operationType == ScheduledTaskOperationType.Delete)
         {
-            await this.ProcessHistoryQueueAsync(this.taskState.State.HistoryBuffer.Count).ConfigureAwait(true);
             this.taskState.State.Task = new();
         }
 
-        if (this.taskState.State.HistoryBuffer.Count > 0)
-        {
-            this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1)).ConfigureAwait(true);
-        }
-        else
-        {
-            await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
-        }
-
         await this.taskState.WriteStateAsync().ConfigureAwait(true);
+
+        this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1)).ConfigureAwait(true);
     }
+
     /// <inheritdoc/>
     public async ValueTask<ScheduledTaskMetadata> UpdateAsync(ScheduledTaskMetadata scheduledTaskMetadata)
     {
@@ -159,6 +151,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     }
 
     /// <inheritdoc/>
+    [ReadOnly]
     public ValueTask<ScheduledTaskMetadata> GetAsync()
     {
         if (!this.taskState.Exists())
@@ -460,6 +453,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         return false;
     }
+
+    [ReadOnly]
     public ValueTask<bool?> IsOwnedByAsync(Guid tenantId)
     {
         if (this.taskState.State.TenantId == Guid.Empty)
