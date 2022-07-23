@@ -88,6 +88,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             RecordedAt = this.taskState.State.Task.ModifiedAt,
             Operation = operationType
         });
+
         this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1)).ConfigureAwait(true);
 
         // For Delete operations, we want to flush the queue prior to deletion. You won't be able to delete until this finishes sucessfully.
@@ -100,6 +101,10 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         if (this.taskState.State.HistoryBuffer.Count > 0)
         {
             this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1)).ConfigureAwait(true);
+        }
+        else
+        {
+            await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
         }
 
         await this.taskState.WriteStateAsync().ConfigureAwait(true);
@@ -315,25 +320,27 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         if (string.Equals(HistoryReminderName, reminderName, StringComparison.Ordinal))
         {
-            // if we hit here and have no state, we failed between setting the reminder and writing the state. Nothing to do here except cancel the reminder.
+            // if we hit here and have no state; Nothing to do here except cancel the reminder.
             if (!this.taskState.RecordExists || this.taskState.State.Task.CreatedAt == DateTime.MinValue)
             {
-                if (this.historyReminder is null)
-                {
-                    this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
-                }
+                this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
 
-                if (this.historyReminder is not null)
-                {
-                    await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
-                    return;
-                }
-                // Reminder doesn't exist for some reason so we are ok to bail.
+                await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
                 return;
             }
 
-            // Let's process 
+            // Let's process the history queue
             await this.ProcessHistoryQueueAsync(batchSize: 10).ConfigureAwait(true);
+
+            if (this.taskState.State.HistoryBuffer.Count == 0)
+            {
+                this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
+
+                // Disable the reminder if there is no more work to do. It'll get re-registered when new records are available.
+                await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
+
+                return;
+            }
             return;
         }
     }
@@ -344,16 +351,6 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         {
             if (this.taskState.State.HistoryBuffer.Count == 0)
             {
-                if (this.historyReminder is null)
-                {
-                    this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
-                }
-
-                if (this.historyReminder is not null)
-                {
-                    // Disable the reminder if there is no more work to do. It'll get re-registered when new records are available.
-                    await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
-                }
                 return;
             }
 
@@ -395,21 +392,6 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 // Add the item back to the list.
                 this.taskState.State.HistoryBuffer.Insert(0, historyRecord);
             }
-        }
-
-        if (this.taskState.State.HistoryBuffer.Count == 0)
-        {
-            if (this.historyReminder is null)
-            {
-                this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
-            }
-
-            if (this.historyReminder is not null)
-            {
-                // Disable the reminder if there is no more work to do. It'll get re-registered when new records are available.
-                await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
-            }
-            return;
         }
     }
     private async Task<bool> ProcessTaskAsync() => this.taskState.State.Task.TriggerType switch
