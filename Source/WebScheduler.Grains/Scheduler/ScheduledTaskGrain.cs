@@ -183,6 +183,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
     public override async Task OnActivateAsync()
     {
+        await this.EnsureHistoryQueueProcessorReminderAsync().ConfigureAwait(true);
+
         // No task so nothing to do
         if (!this.taskState.Exists())
         {
@@ -193,15 +195,21 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         {
             this.BuildExpressionAndSetNextRunAt();
         }
+
         await this.SetupReminderAsync().ConfigureAwait(true);
 
-        this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
-        if (this.historyReminder is null && this.taskState.State.HistoryBuffer.Count > 0)
+        await base.OnActivateAsync().ConfigureAwait(true);
+    }
+
+    private async ValueTask EnsureHistoryQueueProcessorReminderAsync()
+    {
+        if (this.taskState.State.HistoryBuffer.Count == 0)
         {
-            this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1)).ConfigureAwait(true);
+            return;
         }
 
-        await base.OnActivateAsync().ConfigureAwait(true);
+        this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true) ??
+            await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1)).ConfigureAwait(true);
     }
 
     private async ValueTask SetupReminderAsync()
@@ -314,6 +322,9 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 // Let's process the history queue
                 await this.ProcessHistoryQueueAsync(batchSize: 10).ConfigureAwait(true);
                 break;
+            default:
+                this.logger.UnknownReminderName(reminderName);
+                break;
         }
 
         // Ensure History buffer can empty out
@@ -322,8 +333,10 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
 
             // Disable the reminder if there is no more work to do. It'll get re-registered when new records are available.
-            await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
-
+            if (this.historyReminder is not null)
+            {
+                await this.UnregisterReminder(this.historyReminder).ConfigureAwait(true);
+            }
             return;
         }
 
