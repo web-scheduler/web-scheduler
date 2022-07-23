@@ -35,4 +35,10 @@ internal static partial class SchedulerLoggerExtensions
     Level = LogLevel.Error,
     Message = "Error writing state for ScheduledTask {Id}.")]
     public static partial void ErrorWritingState(this ILogger<ScheduledTaskGrain> logger, Exception exception, string id);
+
+    [LoggerMessage(
+    EventId = 6005,
+    Level = LogLevel.Warning,
+    Message = "Unknown ReminderName {ReminderName}.")]
+    public static partial void UnknownReminderName(this ILogger<ScheduledTaskGrain> logger, string reminderName);
 }
