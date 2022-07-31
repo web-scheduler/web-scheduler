@@ -7,7 +7,7 @@
 # (See https://docs.microsoft.com/en-us/visualstudio/containers/container-msbuild-properties)
 FROM mcr.microsoft.com/dotnet/aspnet:6.0.5-alpine3.15-amd64 AS base
 # Open Container Initiative (OCI) labels (See https://github.com/opencontainers/image-spec/blob/master/annotations.md).
-LABEL org.opencontainers.image.title="Web Scheduler" \
+LABEL org.opencontainers.image.title="Web Scheduler DataMigrations" \
     org.opencontainers.image.description="A general web scheduler with a variety of triggers." \
     org.opencontainers.image.documentation="https://github.com/web-scheduler/web-scheduler" \
     org.opencontainers.image.source="https://github.com/web-scheduler/web-scheduler.git" \
@@ -25,7 +25,7 @@ RUN apk add --no-cache \
 ENV LC_ALL=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 WORKDIR /app
-EXPOSE 80 11111 30000
+EXPOSE 80
 
 # SDK image used to build and publish the application
 FROM mcr.microsoft.com/dotnet/sdk:6.0.300-alpine3.15-amd64 AS sdk
@@ -39,12 +39,12 @@ COPY "Source/WebScheduler.DataMigrations/*.csproj" "Source/WebScheduler.DataMigr
 WORKDIR /src/Source/WebScheduler.DataMigrations
 # Run the restore and cache the packages on the host for faster subsequent builds.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet restore WebScheduler.DataMigrations.csproj
+    dotnet restore
 COPY . .
 # To view the files that have been copied into the container file system for debugging purposes uncomment this line
 # RUN apk add --no-cache tree && tree
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet ef migrations bundle --self-contained -r linux-x64 --verbose -p "Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj" --configuration $Configuration --output /app
+    dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration $Configuration --output /app
 
 
 
