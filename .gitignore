@@ -351,3 +351,6 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 Artifacts/
+# dotnet ef migrations bundle binaries
+/Source/WebScheduler.DataMigrations/efbundle.exe
+/Source/WebScheduler.DataMigrations/efbundle

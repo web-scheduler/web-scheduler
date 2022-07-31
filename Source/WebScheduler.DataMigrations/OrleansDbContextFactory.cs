@@ -1,26 +1,6 @@
-namespace WebSchedulerDataMigrations;
+namespace WebScheduler.DataMigrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using WebScheduler.DataMigrations;
-
-public static class Program
-{
-    public static void Main(string[] args)
-        => CreateHostBuilder(args).Build().Run();
-
-    public static IHostBuilder CreateHostBuilder(string[] args)
-        => Host.CreateDefaultBuilder(args)
-        .ConfigureServices((hostBuilderContext, services) =>
-        {
-            Console.WriteLine(hostBuilderContext.Configuration["Storage:ConnectionString"]);
-            services.AddDbContext<OrleansDbContext>(b => b.UseMySql(hostBuilderContext.Configuration["Storage:ConnectionString"],
-                        ServerVersion.AutoDetect(hostBuilderContext.Configuration["Storage:ConnectionString"]),
-                        dbOpts => dbOpts.MigrationsAssembly(typeof(Program).Assembly.FullName).EnableRetryOnFailure())
-                    .LogTo(Console.WriteLine, LogLevel.Information)
-                .EnableSensitiveDataLogging()
-                .EnableDetailedErrors());
-        });
-}
 
 /// <summary>
 /// Used by EF tools at design time to create migrations.
@@ -41,7 +21,7 @@ public class OrleansDbContextFactory : IDesignTimeDbContextFactory<OrleansDbCont
         var optionsBuilder = new DbContextOptionsBuilder<OrleansDbContext>()
            .UseMySql(configuration["Storage:ConnectionString"],
                         ServerVersion.AutoDetect(configuration["Storage:ConnectionString"]),
-                        dbOpts => dbOpts.MigrationsAssembly(typeof(Program).Assembly.FullName).EnableRetryOnFailure())
+                        dbOpts => dbOpts.MigrationsAssembly(typeof(OrleansDbContextFactory).Assembly.FullName).EnableRetryOnFailure())
                     .LogTo(Console.WriteLine, LogLevel.Information)
                 .EnableSensitiveDataLogging()
                 .EnableDetailedErrors();

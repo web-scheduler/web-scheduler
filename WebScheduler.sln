@@ -5,9 +5,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{57BAE1BC-D418-4A95-B292-C0E9324B0A54}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{D57B72FA-A893-400C-AB2E-6919219A38D2}"
-	ProjectSection(SolutionItems) = preProject
-		Tests\.editorconfig = Tests\.editorconfig
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebScheduler.Abstractions", "Source\WebScheduler.Abstractions\WebScheduler.Abstractions.csproj", "{37BAB36C-8D89-4144-A7D0-034EE1B22813}"
 EndProject
@@ -66,7 +63,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".do", ".do", "{95B06FEA-F58
 		.do\app.yaml = .do\app.yaml
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebScheduler.DataMigrations", "Source\WebScheduler.DataMigrations\WebScheduler.DataMigrations.csproj", "{833FDF75-238A-43ED-A68B-31BEE2788F31}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebScheduler.DataMigrations", "Source\WebScheduler.DataMigrations\WebScheduler.DataMigrations.csproj", "{833FDF75-238A-43ED-A68B-31BEE2788F31}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
