@@ -36,7 +36,7 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=true \
 WORKDIR /src
 COPY "Source/WebScheduler.DataMigrations/*.csproj" "Source/WebScheduler.DataMigrations/"
 
-WORKDIR /src/WebScheduler.DataMigrations
+WORKDIR /src/Source/WebScheduler.DataMigrations
 # Run the restore and cache the packages on the host for faster subsequent builds.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet restore
