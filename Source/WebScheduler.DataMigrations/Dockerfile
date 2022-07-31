@@ -35,6 +35,8 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=true \
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
 WORKDIR /src
 COPY "Source/WebScheduler.DataMigrations/*.csproj" "Source/WebScheduler.DataMigrations/"
+COPY "dotnet-tools.json" "Source/WebScheduler.DataMigrations/"
+
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet tool restore
 WORKDIR /src/Source/WebScheduler.DataMigrations
