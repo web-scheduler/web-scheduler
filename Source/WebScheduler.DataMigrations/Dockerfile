@@ -37,9 +37,10 @@ WORKDIR /src
 COPY "Source/WebScheduler.DataMigrations/*.csproj" "Source/WebScheduler.DataMigrations/"
 COPY "dotnet-tools.json" "Source/WebScheduler.DataMigrations/"
 
+WORKDIR /src/Source/WebScheduler.DataMigrations
+
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet tool restore
-WORKDIR /src/Source/WebScheduler.DataMigrations
 # Run the restore and cache the packages on the host for faster subsequent builds.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet restore
