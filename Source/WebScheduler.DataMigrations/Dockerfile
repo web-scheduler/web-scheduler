@@ -39,12 +39,10 @@ COPY "Source/WebScheduler.DataMigrations/*.csproj" "Source/WebScheduler.DataMigr
 WORKDIR /src/Source/WebScheduler.DataMigrations
 # Run the restore and cache the packages on the host for faster subsequent builds.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet restore
+    dotnet restore WebScheduler.DataMigrations.csproj
 COPY . .
 # To view the files that have been copied into the container file system for debugging purposes uncomment this line
 # RUN apk add --no-cache tree && tree
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet build --configuration $Configuration --no-restore
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet ef migrations bundle --self-contained -r linux-x64 --verbose -p "Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj" --configuration $Configuration --output /app
 
