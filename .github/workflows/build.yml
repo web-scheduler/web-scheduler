@@ -97,7 +97,7 @@ jobs:
         shell: pwsh
       - name: Build Bundler ${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --no-build --configuration $Configuration --output ./Artifacts --project  "Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj"
+        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration $Configuration --output ./Artifacts --project  "Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj"
       - name: Execute Bundler ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: ./Artifacts/efbundle --connection= {{ server=127.0.0.1;user id=root;password=Password12!;port=3306;sslmode=Preferred;database=Orleans; }}
