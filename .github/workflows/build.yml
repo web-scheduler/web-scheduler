@@ -23,6 +23,7 @@ env:
   mysqlLegacySqlMode: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
   # Currently no ONLY_FULL_GROUP_BY, see #1167:
   maxConnections: 255
+  ConnectionStrings__Default: server=127.0.0.1;user id=root;password=Password12!;port=3306;sslmode=Preferred;database=Orleans;
 jobs:
   build:
     name: Build-${{matrix.os}}-${{matrix.db}}:${{matrix.version}}
@@ -104,7 +105,7 @@ jobs:
         run: cp Source/WebScheduler.DataMigrations/efbundle ./Artifacts
       - name: Execute Bundler ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: ./Artifacts/efbundle --connection="server=127.0.0.1;user id=root;password=Password12!;port=3306;sslmode=Preferred;database=Orleans;"
+        run: ./Artifacts/efbundle
       - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
         run: dotnet cake --target=Test
         shell: pwsh
