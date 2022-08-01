@@ -43,7 +43,6 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         shell: pwsh
         run: |
-          sudo systemctl stop mysql
               docker run --name mysql -e MYSQL_ROOT_PASSWORD=Password12! -p 3306:3306 -d '${{ matrix.db }}:${{ matrix.version }}'
               $waitMinutes = 5
               $pollingIntervalSeconds = 3
