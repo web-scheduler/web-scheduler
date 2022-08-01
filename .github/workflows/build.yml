@@ -18,15 +18,70 @@ env:
   # Disable sending .NET CLI telemetry to Microsoft.
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   # Set the build number in MinVer.
-#  MINVERBUILDMETADATA: build.${{github.run_number}}
+  #MINVERBUILDMETADATA: build.${{github.run_number}}
+  mysqlCurrentSqlMode: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+  mysqlLegacySqlMode: ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+  # Currently no ONLY_FULL_GROUP_BY, see #1167:
+  maxConnections: 255
 jobs:
   build:
     name: Build-${{matrix.os}}
     runs-on: ${{matrix.os}}
     strategy:
+      fail-fast: false
       matrix:
+        db: [mysql]
+        version: ["5.7.36","5.7.29", "8.0.22", "8.0.19", "5.7.33"]
         os: [ubuntu-latest] # windows-latest, macOS-latest
     steps:
+      - name: Pull ${{matrix.db}}:${{matrix.version}} and setup Docker
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          echo "Pulling ${{matrix.db}}:${{matrix.version}}"
+          docker pull ${{matrix.db}}:${{matrix.version}}
+      - name: Setup Test Database
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        shell: pwsh
+        run: |
+          sudo systemctl stop mysql
+              docker run --name mysql -e MYSQL_ROOT_PASSWORD=Password12! -p 3306:3306 -d '${{ matrix.db }}:${{ matrix.version }}'
+              $waitMinutes = 5
+              $pollingIntervalSeconds = 3
+              $startTime = Get-Date
+              $started = $false
+              while (!($started = docker exec mysql mysqladmin --protocol=tcp -h localhost -P 3306 -u root -pPassword12! status) -and ((Get-Date) - $startTime).TotalMinutes -lt $waitMinutes)
+              {
+                Start-Sleep -Seconds $pollingIntervalSeconds
+              }
+              if (!$started)
+              {
+                throw "$(databaseServerType):$(databaseServerVersion) docker container failed to start in $(waitMinutes) minutes"
+                exit 1
+              }
+      - name: Setup Database MySQL - 8.0.27 ubuntu-latest
+        if: ${{ matrix.version == '8.0.27' && matrix.os == 'ubuntu-latest'}}
+        shell: pwsh
+        run: |
+          $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlCurrentSqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans; """
+          $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
+          $mySqlCommand
+          Invoke-Expression $mySqlCommand
+      - name: Setup Database MySQL Legacy
+        if: ${{ matrix.version == '5.7.36' }}
+        shell: pwsh
+        run: |
+          $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlLegacySqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans;"""
+          $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
+          $mySqlCommand
+          Invoke-Expression $mySqlCommand
+      - name: Setup Database MySQL Legacy - 5.7.29
+        if: ${{ matrix.version == '5.7.29' }}
+        shell: pwsh
+        run: |
+          $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlLegacySqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans;"""
+          $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
+          $mySqlCommand
+          Invoke-Expression $mySqlCommand
       - name: "Checkout"
         uses: actions/checkout@v3
         with:
@@ -40,14 +95,19 @@ jobs:
       - name: "Dotnet Cake Build"
         run: dotnet cake --target=Build
         shell: pwsh
-      - name: "Dotnet Cake Test"
+      - name: Build Bundler ${{matrix.version}}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --no-build --configuration $Configuration --output ./Artifacts --project  "Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj"
+      - name: Execute Bundler ${{matrix.db}}:${{matrix.version}}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: ./Artifacts/efbundle --connection= {{ server=127.0.0.1;user id=root;password=Password12!;port=3306;sslmode=Preferred;database=Orleans; }}
+               
+      - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
         run: dotnet cake --target=Test
         shell: pwsh
       - name: "Dotnet Cake Publish"
         run: dotnet cake --target=Publish
         shell: pwsh
-      - name: "List all files"
-        run: ls -R
       - name: "Dotnet Cake Pack"
         run: dotnet cake --target=Pack
       - name: "List all files"

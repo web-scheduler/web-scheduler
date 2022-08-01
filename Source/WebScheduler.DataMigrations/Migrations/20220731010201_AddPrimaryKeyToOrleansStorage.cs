@@ -2,7 +2,6 @@
 
 namespace WebScheduler.DataMigrations.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations;
-
 public partial class AddPrimaryKeyToOrleansStorage : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
