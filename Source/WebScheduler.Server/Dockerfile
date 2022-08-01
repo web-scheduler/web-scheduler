@@ -35,6 +35,7 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=true \
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
 WORKDIR /src
 COPY "WebScheduler.sln" "."
+COPY "dotnet-tools.json" "."
 COPY "Source/WebScheduler.DataMigrations/*.csproj" "Source/WebScheduler.DataMigrations/"
 COPY "Source/WebScheduler.Abstractions/*.csproj" "Source/WebScheduler.Abstractions/"
 COPY "Source/WebScheduler.Grains/*.csproj" "Source/WebScheduler.Grains/"
