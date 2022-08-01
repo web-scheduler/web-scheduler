@@ -98,14 +98,13 @@ jobs:
         run: ls -R
       - name: Build Bundler ${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration $Configuration --project "Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj"
+        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj
       - name: Copy Source/WebScheduler.DataMigrations/efbundle to ./Artifacts/efbundle
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: cp Source/WebScheduler.DataMigrations/efbundle ./Artifacts
       - name: Execute Bundler ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: ./Artifacts/efbundle --connection= {{ server=127.0.0.1;user id=root;password=Password12!;port=3306;sslmode=Preferred;database=Orleans; }}
-               
+        run: ./Artifacts/efbundle --connection="server=127.0.0.1;user id=root;password=Password12!;port=3306;sslmode=Preferred;database=Orleans;"
       - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
         run: dotnet cake --target=Test
         shell: pwsh
