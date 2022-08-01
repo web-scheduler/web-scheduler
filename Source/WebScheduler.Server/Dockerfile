@@ -52,6 +52,10 @@ RUN dotnet test --configuration $Configuration --no-build
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet publish "Source/WebScheduler.Server/WebScheduler.Server.csproj" --configuration $Configuration --no-build --output /app
 
+    # Build the EF Bundler to produce the SQL migration executable
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --no-build --configuration $Configuration --output /app --project  "Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj"
+
 WORKDIR /tools
 # Install desired .NET CLI diagnostics tools
 RUN dotnet tool install --tool-path /tools dotnet-trace
