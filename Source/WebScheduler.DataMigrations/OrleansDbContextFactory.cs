@@ -16,15 +16,12 @@ public class OrleansDbContextFactory : IDesignTimeDbContextFactory<OrleansDbCont
           .AddEnvironmentVariables();
 
         var configuration = configurationBuilder.Build();
-        var connectionString = configuration["Storage:ConnectionString"];
+        var connectionString = configuration["ConnectionStrings:Default"];
 
         var optionsBuilder = new DbContextOptionsBuilder<OrleansDbContext>()
-           .UseMySql(configuration["Storage:ConnectionString"],
-                        ServerVersion.AutoDetect(configuration["Storage:ConnectionString"]),
-                        dbOpts => dbOpts.MigrationsAssembly(typeof(OrleansDbContextFactory).Assembly.FullName).EnableRetryOnFailure())
-                    .LogTo(Console.WriteLine, LogLevel.Information)
-                .EnableSensitiveDataLogging()
-                .EnableDetailedErrors();
+           .UseMySql(connectionString,
+                        MySqlServerVersion.LatestSupportedServerVersion,
+                        dbOpts => dbOpts.MigrationsAssembly(typeof(OrleansDbContextFactory).Assembly.FullName).EnableRetryOnFailure());
         return new OrleansDbContext(optionsBuilder.Options);
     }
 }

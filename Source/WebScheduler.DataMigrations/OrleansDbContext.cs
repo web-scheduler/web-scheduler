@@ -108,7 +108,8 @@ public class OrleansDbContext : DbContext
         })
             .Entity<OrleansStorage>(entity =>
             {
-                entity.Property(e => e.Id).UseMySqlIdentityColumn();
+                entity.Property(e => e.Id)
+                .UseMySqlIdentityColumn();
 
                 entity.HasKey(e => new { e.Id, e.GrainIdHash, e.GrainTypeHash })
                 .HasName("PRIMARY");

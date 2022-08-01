@@ -1,7 +1,6 @@
 #nullable disable
 
 namespace WebScheduler.DataMigrations.Migrations;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 public partial class AddPrimaryKeyToOrleansStorage : Migration
@@ -9,18 +8,16 @@ public partial class AddPrimaryKeyToOrleansStorage : Migration
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.Sql("SET SQL_REQUIRE_PRIMARY_KEY = 0;");
-        migrationBuilder.AddColumn<long>(
-            name: "Id",
-            table: "OrleansStorage",
-            type: "bigint",
-            nullable: false,
-            defaultValue: 0L)
-            .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn);
 
-        migrationBuilder.AddPrimaryKey(
-            name: "PRIMARY",
-            table: "OrleansStorage",
-            columns: new[] { "Id", "GrainIdHash", "GrainTypeHash" });
+        migrationBuilder.DropIndex(
+            name: "IX_OrleansStorage",
+            table: "OrleansStorage");
+
+        migrationBuilder.Sql("ALTER TABLE `OrleansStorage` ADD `Id` bigint NOT NULL;");
+        migrationBuilder.Sql("ALTER TABLE `OrleansStorage` ADD PRIMARY KEY(Id, GrainIdHash, GrainTypeHash);");
+        migrationBuilder.Sql("ALTER TABLE `OrleansStorage` MODIFY  `Id` bigint NOT NULL AUTO_INCREMENT;");
+        migrationBuilder.Sql("SET SQL_REQUIRE_PRIMARY_KEY = 1;");
+        migrationBuilder.Sql("DROP procedure POMELO_AFTER_ADD_PRIMARY_KEY;");
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
@@ -32,5 +29,10 @@ public partial class AddPrimaryKeyToOrleansStorage : Migration
         migrationBuilder.DropColumn(
             name: "Id",
             table: "OrleansStorage");
+
+        migrationBuilder.CreateIndex(
+            name: "IX_OrleansStorage",
+            table: "OrleansStorage",
+            columns: new[] { "GrainIdHash", "GrainTypeHash" });
     }
 }
