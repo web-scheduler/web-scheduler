@@ -43,6 +43,11 @@ COPY "Tests/WebScheduler.Server.IntegrationTest/*.csproj" "Tests/WebScheduler.Se
 # Run the restore and cache the packages on the host for faster subsequent builds.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet restore
+
+# Restore dotnet tools
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet tool restore
+
 COPY . .
 # To view the files that have been copied into the container file system for debugging purposes uncomment this line
 # RUN apk add --no-cache tree && tree
