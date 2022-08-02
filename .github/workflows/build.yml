@@ -206,9 +206,9 @@ jobs:
       DOCKER_USERNAME: ${{secrets.DOCR_USER}}
       DOCKER_PASSWORD: ${{secrets.DOCR_PASSWORD}}
       DOCKER_REPOSITORY_NAME: web-scheduler
-    environment:
-       name: "DOCR registry.digitalocean.com/web-scheduler"
-       url: https://registry.digitalocean.com/web-scheduler/web-scheduler-server
+    #environment: #TODO: Switch this to PR URL
+    #   name: "DOCR registry.digitalocean.com/web-scheduler"
+    #   url: https://registry.digitalocean.com/web-scheduler/web-scheduler-server
     permissions:
       packages: write
     runs-on: ${{matrix.os}}
@@ -218,6 +218,9 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3
+        with:
+          lfs: true
+          fetch-depth: 0
       - name: "Install .NET Core SDK"
         uses: actions/setup-dotnet@v2
       - name: "Dotnet Tool Restore"
