@@ -217,6 +217,13 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
+      - name: "Checkout"
+        uses: actions/checkout@v3
+      - name: "Install .NET Core SDK"
+        uses: actions/setup-dotnet@v2
+      - name: "Dotnet Tool Restore"
+        run: dotnet tool restore
+        shell: pwsh
       - name: "Download Artifact"
         uses: actions/download-artifact@v3
         with:
