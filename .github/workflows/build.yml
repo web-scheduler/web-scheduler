@@ -118,8 +118,10 @@ jobs:
       - name: "Publish Artifact - NuGets"
         uses: actions/upload-artifact@v3
         with:
-          name: ${{matrix.os}}
+          name: NuGets
           path: "./Artifacts/Pack"
+      - name: Cleanup ./Artifacts
+        run: rm -rf ./Artifacts/Pack ./Artifacts/Publish
       - name: "Publish Artifacts"
         uses: actions/upload-artifact@v3
         with:
@@ -271,7 +273,7 @@ jobs:
       - name: "Download Artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "ubuntu-latest"
+          name: NuGets
       - name: "Dotnet NuGet Add Source"
         run: dotnet nuget add source https://nuget.pkg.github.com/web-scheduler/index.json --name GitHub --username web-scheduler --password ${{secrets.GITHUB_TOKEN}}
         shell: pwsh
@@ -291,7 +293,7 @@ jobs:
       - name: "Download Artifact"
         uses: actions/download-artifact@v3
         with:
-          name: "ubuntu-latest"
+          name: NuGets
       - name: "Dotnet NuGet Push"
         run: |
           Get-ChildItem -Recurse .\ -Filter *.nupkg |
