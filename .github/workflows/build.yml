@@ -79,14 +79,19 @@ jobs:
       - name: "Dotnet Cake Build"
         run: dotnet cake --target=Build
         shell: pwsh
-      - name: Build Bundler ${{matrix.version}}
+      - name: Build Bundler ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj
-      - name: Copy Source/WebScheduler.DataMigrations/efbundle to ./Artifacts/efbundle
-        run: mkdir -p ./Artifacts/migrator && mv efbundle ./Artifacts/migrator/
+      - name: Move  Source/efbundle to ./Artifacts/efbundle
+        run: mkdir -p ./migrator && mv efbundle ./migrator/
       - name: Execute Bundler ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: ./Artifacts/migrator/efbundle
+        run: ./migrator/efbundle
+      - name: "Publish Artifact - migrator"
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.os}}
+          path: "./migrator"
       - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
         run: dotnet cake --target=Test
         shell: pwsh
@@ -161,10 +166,15 @@ jobs:
           $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
           $mySqlCommand
           Invoke-Expression $mySqlCommand
-      - name: "Download Artifact"
+      - name: "Download Artifacts"
         uses: actions/download-artifact@v3
         with:
           name: "ubuntu-latest"
+      - name: "Download Artifact - migrator"
+        uses: actions/download-artifact@v3
+        with:
+          name: migrator
+          path: ./migrator
       - name: "List all files"
         run: ls -R
       - name: Execute efBundle ${{matrix.db}}:${{matrix.version}}
@@ -173,11 +183,6 @@ jobs:
       - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
         run: dotnet cake --target=Test
         shell: pwsh
-      - name: "Dotnet Cake Publish"
-        run: dotnet cake --target=Publish
-        shell: pwsh
-      - name: "Dotnet Cake Pack"
-        run: dotnet cake --target=Pack
       - name: "Publish Artifacts"
         uses: actions/upload-artifact@v3
         with:
