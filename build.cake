@@ -129,7 +129,7 @@ Task("DockerBuild")
         // See https://github.com/docker/buildx
 
         System.IO.Directory.CreateDirectory(ArtifactsDirectory);
-        System.IO.File.WriteAllText(System.IO.Path.Join(ArtifactsDirectory, "DOCKER_TAG"), $"{version}");
+        System.IO.File.WriteAllText(System.IO.Path.Join(ArtifactsDirectory, "DOCKER_TAG"), $"{tag}:{version}");
         StartProcess(
             "docker",
             new ProcessArgumentBuilder()

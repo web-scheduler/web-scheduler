@@ -250,6 +250,14 @@ jobs:
         uses: andstor/file-reader-action@v1
         with:
           path: "./Artifacts/DOCKER_TAG"
+      - name: "Docker Deploy Echo"
+        run: |
+              echo '[
+              {
+                "name": "web-scheduler-server",
+                "repository": "${ steps.read_file.outputs.contents  }",
+                "tag": "${{ steps.read_file.outputs.contents }}"
+              }]'
       - name: DigitalOcean App Platform deployment
         if:  github.event_name == 'release'
         uses: digitalocean/app_action@main
@@ -259,7 +267,7 @@ jobs:
           images: '[
               {
                 "name": "web-scheduler-server",
-                "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/${{env.DOCKER_IMAGE_NAME}}",
+                "repository": "${ steps.read_file.outputs.contents  }",
                 "tag": "${{ steps.read_file.outputs.contents }}"
               }]'
 
