@@ -5,9 +5,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{57BAE1BC-D418-4A95-B292-C0E9324B0A54}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{D57B72FA-A893-400C-AB2E-6919219A38D2}"
-	ProjectSection(SolutionItems) = preProject
-		Tests\.editorconfig = Tests\.editorconfig
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebScheduler.Abstractions", "Source\WebScheduler.Abstractions\WebScheduler.Abstractions.csproj", "{37BAB36C-8D89-4144-A7D0-034EE1B22813}"
 EndProject
@@ -66,6 +63,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".do", ".do", "{95B06FEA-F58
 		.do\app.yaml = .do\app.yaml
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebScheduler.DataMigrations", "Source\WebScheduler.DataMigrations\WebScheduler.DataMigrations.csproj", "{833FDF75-238A-43ED-A68B-31BEE2788F31}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -88,6 +87,10 @@ Global
 		{B611DC13-54DE-41D5-B539-C84B7556A8D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B611DC13-54DE-41D5-B539-C84B7556A8D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B611DC13-54DE-41D5-B539-C84B7556A8D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{833FDF75-238A-43ED-A68B-31BEE2788F31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{833FDF75-238A-43ED-A68B-31BEE2788F31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{833FDF75-238A-43ED-A68B-31BEE2788F31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{833FDF75-238A-43ED-A68B-31BEE2788F31}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -101,6 +104,7 @@ Global
 		{050450CA-B8A7-4B91-BB2A-9B59FAE1A52B} = {76BD1373-F876-4779-A7C8-6FAAF1088B16}
 		{90F1A60D-6607-44BF-AB4C-F53B1E31194F} = {60E0F62E-605A-48F2-BFCA-C63B45AB6335}
 		{90110DBA-335A-4A7A-AD43-48CB1A15346D} = {90F1A60D-6607-44BF-AB4C-F53B1E31194F}
+		{833FDF75-238A-43ED-A68B-31BEE2788F31} = {57BAE1BC-D418-4A95-B292-C0E9324B0A54}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4E464B40-8B3D-427D-BA61-053DB0B94967}

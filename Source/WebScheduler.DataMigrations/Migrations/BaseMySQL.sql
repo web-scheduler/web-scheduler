@@ -1,4 +1,3 @@
-SET SQL_REQUIRE_PRIMARY_KEY = 0;
 /*
 Implementation notes:
 
@@ -110,7 +109,7 @@ VALUES
     @Version, @SiloName, @HostName, @Status, @ProxyPort, @StartTime, @IAmAliveTime);'
 );
 
-DELIMITER $$
+
 
 CREATE PROCEDURE InsertMembershipKey(
     in    _DeploymentId NVARCHAR(150),
@@ -181,9 +180,8 @@ BEGIN
         COMMIT;
     END IF;
     SELECT _ROWCOUNT;
-END$$
+END;
 
-DELIMITER ;
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
@@ -384,7 +382,7 @@ ALTER TABLE OrleansStorage ADD INDEX IX_OrleansStorage (GrainIdHash, GrainTypeHa
 -- http://dev.mysql.com/doc/refman/5.7/en/comments.html for the syntax.
 /*!50708 ALTER TABLE OrleansStorage MODIFY COLUMN PayloadJson JSON */;
 
-DELIMITER $$
+
 
 CREATE PROCEDURE ClearStorage
 (
@@ -431,9 +429,9 @@ BEGIN
 
     SELECT _newGrainStateVersion AS NewGrainStateVersion;
     COMMIT;
-END$$
+END;
 
-DELIMITER $$
+
 CREATE PROCEDURE WriteToStorage
 (
     in _GrainIdHash INT,
@@ -560,9 +558,8 @@ BEGIN
 
     SELECT _newGrainStateVersion AS NewGrainStateVersion;
     COMMIT;
-END$$
+END;
 
-DELIMITER ;
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES

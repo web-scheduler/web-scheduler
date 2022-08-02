@@ -351,3 +351,7 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 Artifacts/
+# dotnet ef migrations bundle binaries
+efbundle.exe
+efbundle
+DOCKER_TAG
