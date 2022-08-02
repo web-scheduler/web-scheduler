@@ -2,9 +2,6 @@ var target = Argument("Target", "Default");
 var configuration =
     HasArgument("Configuration") ? Argument<string>("Configuration") :
     EnvironmentVariable("Configuration", "Release");
-var tag =
-    HasArgument("Tag") ? Argument<string>("Tag") :
-    EnvironmentVariable("Tag", (string)null);
 var platform =
     HasArgument("Platform") ? Argument<string>("Platform") :
     EnvironmentVariable("Platform", "linux/amd64");
@@ -120,7 +117,7 @@ Task("DockerBuild")
     .Description("Builds a Docker image.")
     .DoesForEach(GetFiles("./**/Dockerfile"), dockerfile =>
     {
-        tag = tag ?? dockerfile.GetDirectory().GetDirectoryName().ToLower();
+        var tag = $"{Environment.GetEnvironmentVariable("DOCKER_REGISTRY")}/{Environment.GetEnvironmentVariable("DOCKER_REPOSITORY_NAME")}/{dockerfile.GetDirectory().GetDirectoryName().ToLower().Replace(".", "-")}"; 
         var version = GetVersion();
         var gitCommitSha = GetGitCommitSha();
 

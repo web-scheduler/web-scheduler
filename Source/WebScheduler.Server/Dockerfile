@@ -34,6 +34,9 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=true \
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
 COPY . /app
 
+# To view the files that have been copied into the container file system for debugging purposes uncomment this line
+RUN apk add --no-cache tree && tree
+
 WORKDIR /tools
 # Install desired .NET CLI diagnostics tools
 # Run the restore and cache the packages on the host for faster subsequent builds.
@@ -42,8 +45,9 @@ RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet tool install --tool-path /tools dotnet-counters && \
     dotnet tool install --tool-path /tools dotnet-dump
 
+
 # To view the files that have been copied into the container file system for debugging purposes uncomment this line
-RUN apk add --no-cache tree && tree
+RUN tree
 
 # Runtime image used to run the application
 FROM base AS runtime

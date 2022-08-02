@@ -202,7 +202,6 @@ jobs:
     name: Docker-${{matrix.os}}
     needs: ["build","bundler-test"]
     env:
-      DOCKER_IMAGE_NAME: web-scheduler-server
       DOCKER_REGISTRY: registry.digitalocean.com
       DOCKER_USERNAME: ${{secrets.DOCR_USER}}
       DOCKER_PASSWORD: ${{secrets.DOCR_PASSWORD}}
@@ -240,7 +239,7 @@ jobs:
         run: echo ${{env.DOCKER_PASSWORD}} | docker login ${{env.DOCKER_REGISTRY}} --username ${{env.DOCKER_USERNAME}} --password-stdin
         shell: pwsh
       - name: "Dotnet Cake DockerBuild"
-        run: dotnet cake --target=DockerBuild --tag=${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/${{env.DOCKER_IMAGE_NAME}} --push=${{github.event_name == 'release'}}
+        run: dotnet cake --target=DockerBuild --push=${{github.event_name == 'release'}}
         shell: pwsh
       - name: Read file contents from DOCKER_TAG
         if: github.event_name == 'release'
@@ -279,7 +278,7 @@ jobs:
         run: dotnet nuget add source https://nuget.pkg.github.com/web-scheduler/index.json --name GitHub --username web-scheduler --password ${{secrets.GITHUB_TOKEN}}
         shell: pwsh
       - name: "Dotnet NuGet Push"
-        run: dotnet nuget push .\**\*.nupkg --api-key ${{ github.token }} --source GitHub
+        run: dotnet nuget push .\**\*.nupkg --api-key ${{ github.token }} --skip-duplicate --source GitHub
         shell: pwsh
 
   push-nuget:
