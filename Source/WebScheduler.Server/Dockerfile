@@ -35,7 +35,7 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=true \
 COPY WebScheduler.Server /app
 
 # To view the files that have been copied into the container file system for debugging purposes uncomment this line
-RUN apk add --no-cache tree && tree
+RUN apk add --no-cache tree && tree /app
 
 WORKDIR /tools
 # Install desired .NET CLI diagnostics tools
@@ -47,7 +47,7 @@ RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
 
 
 # To view the files that have been copied into the container file system for debugging purposes uncomment this line
-RUN tree
+RUN tree /tools
 
 # Runtime image used to run the application
 FROM base AS runtime

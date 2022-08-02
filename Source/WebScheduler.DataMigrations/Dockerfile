@@ -25,7 +25,7 @@ ENV LANG=en_US.UTF-8
 WORKDIR /app
 
 COPY ./migrator/efbundle /app/efbundle
-RUN apk add --no-cache tree && tree
+RUN apk add --no-cache tree && tree /app
 
 # Runtime image used to run the application
 FROM base AS runtime

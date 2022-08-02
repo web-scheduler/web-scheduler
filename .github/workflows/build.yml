@@ -250,11 +250,13 @@ jobs:
       - name: "Dotnet Cake DockerBuild"
         run: dotnet cake --target=DockerBuild --push=${{github.event_name == 'release'}}
         shell: pwsh
+      - name: "List all files"
+        run: ls -R
       - name: Read file contents from DOCKER_TAG
         id: read_file
         uses: andstor/file-reader-action@v1
         with:
-          path: "./Artifacts/DOCKER_TAG"
+          path: "./DOCKER_TAG"
       - name: DigitalOcean App Platform deployment
         if:  github.event_name == 'release'
         uses: digitalocean/app_action@main
