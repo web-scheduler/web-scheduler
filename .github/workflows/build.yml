@@ -217,16 +217,10 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v3
+      - name: "Download Artifact"
+        uses: actions/download-artifact@v3
         with:
-          lfs: true
-          fetch-depth: 0
-      - name: "Install .NET Core SDK"
-        uses: actions/setup-dotnet@v2
-      - name: "Dotnet Tool Restore"
-        run: dotnet tool restore
-        shell: pwsh
+          name: WebScheduler.Server
       - name: "Install QEMU"
         id: qemu
         uses: docker/setup-qemu-action@v2
@@ -278,7 +272,7 @@ jobs:
         run: dotnet nuget add source https://nuget.pkg.github.com/web-scheduler/index.json --name GitHub --username web-scheduler --password ${{secrets.GITHUB_TOKEN}}
         shell: pwsh
       - name: "Dotnet NuGet Push"
-        run: dotnet nuget push .\**\*.nupkg --api-key ${{ github.token }} --source GitHub --skip-duplicate
+        run: dotnet nuget push .\**\*.nupkg --api-key ${{ github.token }} --source GitHub
         shell: pwsh
 
   push-nuget:

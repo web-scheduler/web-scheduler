@@ -29,45 +29,21 @@ EXPOSE 80 11111 30000
 
 # SDK image used to build and publish the application
 FROM mcr.microsoft.com/dotnet/sdk:6.0.300-alpine3.15-amd64 AS sdk
-# To use the debug build configuration pass --build-arg Configuration=Debug
-ARG Configuration=Release
+
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=true \
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
-WORKDIR /src
-COPY "WebScheduler.sln" "."
-COPY "dotnet-tools.json" "."
-COPY "Source/WebScheduler.DataMigrations/*.csproj" "Source/WebScheduler.DataMigrations/"
-COPY "Source/WebScheduler.Abstractions/*.csproj" "Source/WebScheduler.Abstractions/"
-COPY "Source/WebScheduler.Grains/*.csproj" "Source/WebScheduler.Grains/"
-COPY "Source/WebScheduler.Server/*.csproj" "Source/WebScheduler.Server/"
-COPY "Tests/WebScheduler.Server.IntegrationTest/*.csproj" "Tests/WebScheduler.Server.IntegrationTest/"
-# Run the restore and cache the packages on the host for faster subsequent builds.
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet restore
-
-# Restore dotnet tools
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet tool restore
-
-COPY . .
-# To view the files that have been copied into the container file system for debugging purposes uncomment this line
-# RUN apk add --no-cache tree && tree
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet build --configuration $Configuration --no-restore
-RUN dotnet test --configuration $Configuration --no-build
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet publish "Source/WebScheduler.Server/WebScheduler.Server.csproj" --configuration $Configuration --no-build --output /app
-
-    # Build the EF Bundler to produce the SQL migration executable
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --no-build --configuration $Configuration --output /app --project  "Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj"
+COPY . /app
 
 WORKDIR /tools
 # Install desired .NET CLI diagnostics tools
-RUN dotnet tool install --tool-path /tools dotnet-trace
-RUN dotnet tool install --tool-path /tools dotnet-counters
-RUN dotnet tool install --tool-path /tools dotnet-dump
+# Run the restore and cache the packages on the host for faster subsequent builds.
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet tool install --tool-path /tools dotnet-trace && \
+    dotnet tool install --tool-path /tools dotnet-counters && \
+    dotnet tool install --tool-path /tools dotnet-dump
 
+# To view the files that have been copied into the container file system for debugging purposes uncomment this line
+RUN apk add --no-cache tree && tree
 
 # Runtime image used to run the application
 FROM base AS runtime
