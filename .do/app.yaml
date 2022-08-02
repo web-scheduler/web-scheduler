@@ -46,11 +46,12 @@ jobs:
   image:
     registry_type: DOCR
     repository: webscheduler-datamigrations
-    tag: 0.1.33
+    tag: 0.1.34
   instance_count: 1
   instance_size_slug: professional-xs
   kind: PRE_DEPLOY
   name: web-scheduler-datamigrator-job
+  run_command: /app/efbundle
 name: web-scheduler
 region: nyc
 services:
@@ -91,7 +92,7 @@ services:
   image:
     registry_type: DOCR
     repository: webscheduler-server
-    tag: 0.1.33
+    tag: 0.1.34
   instance_count: 5
   instance_size_slug: professional-xl
   internal_ports:
