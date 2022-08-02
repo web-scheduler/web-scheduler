@@ -34,7 +34,6 @@ jobs:
         db: [mysql] # we require a MySQL Instance to build the efbundler
         version: ["8.0.27"]
         os: [ubuntu-latest] # windows-latest, macOS-latest'
-        rid: [linux-x64, linux-musl-x64]
     steps:
       - name: Pull ${{matrix.db}}:${{matrix.version}} and setup Docker
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -80,18 +79,31 @@ jobs:
       - name: "Dotnet Cake Build"
         run: dotnet cake --target=Build
         shell: pwsh
-      - name: Make ./migrator-${{matrix.rid}} directory
-        run: mkdir -p ./migrator-${{matrix.rid}}
-      - name: Build Bundler for ${{matrix.rid}} on ${{matrix.db}}:${{matrix.version}}
-        run: dotnet ef migrations bundle --self-contained -r ${{matrix.rid}} --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj -o ./migrator-${{matrix.rid}}/efbundle
-      - name: Execute Bundler ${{matrix.db}}:${{matrix.version}} for test execution
+        
+      - name: Make ./migrator-linux-x64 directory
+        run: mkdir -p ./migrator-linux-x64
+      - name: Build Bundler for linux-x64 on ${{matrix.db}}:${{matrix.version}}
+        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj -o ./migrator-linux-x64/efbundle
+      
+      - name: Execute migrator-linux-x64 ${{matrix.db}}:${{matrix.version}} for test execution
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: ./migrator-${{matrix.rid}}/efbundle
-      - name: "Publish Artifact - migrator-${{matrix.rid}}"
+        run: ./migrator-linux-x64/efbundle
+      - name: "Publish Artifact - migrator-linux-x64"
         uses: actions/upload-artifact@v3
         with:
-          name: migrator-${{matrix.rid}}
-          path: "./migrator-${{matrix.rid}}"
+          name: migrator-linux-x64
+          path: "./migrator-linux-x64"
+          
+      - name: Make ./migrator-linux-musl-x64 directory
+        run: mkdir -p ./migrator-linux-musl-x64
+      - name: Build Bundler for linux-musl-x64 on ${{matrix.db}}:${{matrix.version}}
+        run: dotnet ef migrations bundle --self-contained -r linux-musl-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj -o ./migrator-linux-musl-x64/efbundle
+      - name: "Publish Artifact - migrator-linux-musl-x64"
+        uses: actions/upload-artifact@v3
+        with:
+          name: migrator-linux-musl-x64
+          path: "./migrator-linux-musl-x64"
+  
       - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
         run: dotnet cake --target=Test
         shell: pwsh
