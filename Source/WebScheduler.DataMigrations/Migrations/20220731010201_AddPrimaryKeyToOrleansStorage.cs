@@ -6,7 +6,7 @@ public partial class AddPrimaryKeyToOrleansStorage : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.Sql("/*!80000 SET SQL_REQUIRE_PRIMARY_KEY = 0 */;");
+        migrationBuilder.Sql("/*!80013 SET SQL_REQUIRE_PRIMARY_KEY = 0 */;");
 
         migrationBuilder.DropIndex(
             name: "IX_OrleansStorage",
@@ -15,7 +15,7 @@ public partial class AddPrimaryKeyToOrleansStorage : Migration
         migrationBuilder.Sql("ALTER TABLE `OrleansStorage` ADD `Id` bigint NOT NULL;");
         migrationBuilder.Sql("ALTER TABLE `OrleansStorage` ADD PRIMARY KEY(Id, GrainIdHash, GrainTypeHash);");
         migrationBuilder.Sql("ALTER TABLE `OrleansStorage` MODIFY  `Id` bigint NOT NULL AUTO_INCREMENT;");
-        migrationBuilder.Sql("/*!80000 SET SQL_REQUIRE_PRIMARY_KEY = 1 */;");
+        migrationBuilder.Sql("/*!80013 SET SQL_REQUIRE_PRIMARY_KEY = 1 */;");
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
