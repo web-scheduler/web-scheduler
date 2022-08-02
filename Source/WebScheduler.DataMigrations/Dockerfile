@@ -32,4 +32,4 @@ FROM base AS runtime
 WORKDIR /app
 COPY --from=base /app .
 RUN chmod +x efbundle
-ENTRYPOINT ["efbundle"]
+ENTRYPOINT ["/app/efbundle"]
