@@ -206,7 +206,7 @@ jobs:
       DOCKER_REPOSITORY_NAME: web-scheduler
     environment: #TODO: Switch this to PR URL
        name: "DOCR registry.digitalocean.com/web-scheduler"
-       url: https://registry.digitalocean.com/web-scheduler/web-scheduler-server
+       url: https://registry.digitalocean.com/web-scheduler
     permissions:
       packages: write
     runs-on: ${{matrix.os}}
@@ -264,6 +264,11 @@ jobs:
               {
                 "name": "web-scheduler-server",
                 "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/webscheduler-server",
+                "tag": "${{ steps.read_file.outputs.contents }}"
+              },
+              {
+                "name": "web-scheduler-datamigrator-job",
+                "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/webscheduler-datamigrations",
                 "tag": "${{ steps.read_file.outputs.contents }}"
               }]'
 
