@@ -19,6 +19,38 @@ domains:
   type: PRIMARY
 features:
 - enable-kata-build
+jobs:
+- alerts:
+  - operator: GREATER_THAN
+    rule: CPU_UTILIZATION
+    value: 80
+    window: FIVE_MINUTES
+  - operator: GREATER_THAN
+    rule: MEM_UTILIZATION
+    value: 80
+    window: FIVE_MINUTES
+  - operator: GREATER_THAN
+    rule: RESTART_COUNT
+    value: 1
+    window: FIVE_MINUTES
+  envs:
+  - key: ASPNETCORE_ENVIRONMENT
+    scope: RUN_AND_BUILD_TIME
+    value: Production
+  - key: Kestrel__Endpoints__Http__Url
+    scope: RUN_TIME
+    value: http://*:80
+  - key: ConnectionStrings__Default
+    scope: RUN_TIME
+    value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
+  image:
+    registry_type: DOCR
+    repository: webscheduler-datamigrations
+    tag: 0.1.33
+  instance_count: 1
+  instance_size_slug: professional-xs
+  kind: PRE_DEPLOY
+  name: web-scheduler-datamigrator-job
 name: web-scheduler
 region: nyc
 services:
@@ -57,8 +89,8 @@ services:
   http_port: 8080
   image:
     registry_type: DOCR
-    repository: web-scheduler-server
-    tag: 0.1.32
+    repository: webscheduler-server
+    tag: 0.1.33
   instance_count: 5
   instance_size_slug: professional-xl
   internal_ports:
@@ -130,33 +162,3 @@ static_sites:
   routes:
   - path: /
     preserve_path_prefix: true
-jobs:
-- name: web-scheduler-datamigrator-job
-  image:
-    registry_type: DOCR
-    repository: webscheduler-datamigrations
-    tag: 0.1.34
-  envs:
-  - key: ASPNETCORE_ENVIRONMENT
-    scope: RUN_AND_BUILD_TIME
-    value: Production
-  - key: Kestrel__Endpoints__Http__Url
-    scope: RUN_TIME
-    value: http://*:80
-  - key: ConnectionStrings__Default
-    scope: RUN_TIME
-    value: Server=${web-scheduler-prod.HOSTNAME};Port=${web-scheduler-prod.PORT};Database=orleans;UserId=${web-scheduler-prod.USERNAME};Password=${web-scheduler-prod.PASSWORD};SslMode=Required;
-  kind: POST_DEPLOY
-  alerts:
-    - operator: GREATER_THAN
-      rule: CPU_UTILIZATION
-      value: 80
-      window: FIVE_MINUTES
-    - operator: GREATER_THAN
-      rule: MEM_UTILIZATION
-      value: 80
-      window: FIVE_MINUTES
-    - operator: GREATER_THAN
-      rule: RESTART_COUNT
-      value: 1
-      window: FIVE_MINUTES

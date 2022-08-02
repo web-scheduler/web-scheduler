@@ -31,5 +31,5 @@ RUN apk add --no-cache tree && tree /app
 FROM base AS runtime
 WORKDIR /app
 COPY --from=base /app .
-
-ENTRYPOINT ["efbundle"]
+RUN chmod +x /app/efbundle
+ENTRYPOINT ["/app/efbundle"]
