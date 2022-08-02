@@ -12,7 +12,7 @@ public class OrleansDbContextFactory : IDesignTimeDbContextFactory<OrleansDbCont
         var configurationBuilder = new ConfigurationBuilder()
           .SetBasePath(Directory.GetCurrentDirectory())
           .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-          .AddUserSecrets("dotnet-WebScheduler.DataMigrations-C67C4BF2-BBB4-4CE3-84C9-40E277E34893")
+          .AddUserSecrets(typeof(OrleansDbContext).Assembly, optional: true)
           .AddEnvironmentVariables();
 
         var configuration = configurationBuilder.Build();
