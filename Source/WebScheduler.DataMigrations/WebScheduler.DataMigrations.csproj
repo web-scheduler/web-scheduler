@@ -7,6 +7,7 @@
     <UserSecretsId>dotnet-WebScheduler.DataMigrations-C67C4BF2-BBB4-4CE3-84C9-40E277E34893</UserSecretsId>
     <OutputType>Library</OutputType>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
