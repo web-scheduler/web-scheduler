@@ -196,7 +196,7 @@ jobs:
         run: ls -R
       - name: Execute efBundle ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: ./efbundle
+        run: chmod +x ./efbundle && ./efbundle
 
   docker:
     name: Docker-${{matrix.os}}
