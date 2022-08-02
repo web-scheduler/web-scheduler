@@ -95,16 +95,12 @@ jobs:
       - name: "Dotnet Cake Build"
         run: dotnet cake --target=Build
         shell: pwsh
-      - name: Dump env
-        run: env
-      - name: "List all files"
-        run: ls -R
       - name: Build Bundler ${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj
       - name: Copy Source/WebScheduler.DataMigrations/efbundle to ./Artifacts/efbundle
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: cp Source/WebScheduler.DataMigrations/efbundle ./Artifacts
+        run: cp efbundle ./Artifacts
       - name: Execute Bundler ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: ./Artifacts/efbundle
