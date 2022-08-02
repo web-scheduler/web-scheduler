@@ -26,7 +26,86 @@ env:
   "ConnectionStrings__Default": server=127.0.0.1;user id=root;password=Password12!;port=3306;sslmode=Preferred;database=Orleans;
 jobs:
   build:
-    name: Build-${{matrix.os}}-${{matrix.db}}:${{matrix.version}}
+    name: Build-${{matrix.os}}
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [mysql] # we require a MySQL Instance to build the efbundler
+        version: ["8.0.27"]
+        os: [ubuntu-latest] # windows-latest, macOS-latest
+    steps:
+      - name: Pull ${{matrix.db}}:${{matrix.version}} and setup Docker
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          echo "Pulling ${{matrix.db}}:${{matrix.version}}"
+          docker pull ${{matrix.db}}:${{matrix.version}}
+      - name: Setup Test Database
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        shell: pwsh
+        run: |
+              docker run --name mysql -e MYSQL_ROOT_PASSWORD=Password12! -p 3306:3306 -d '${{ matrix.db }}:${{ matrix.version }}'
+              $waitMinutes = 5
+              $pollingIntervalSeconds = 3
+              $startTime = Get-Date
+              $started = $false
+              while (!($started = docker exec mysql mysqladmin --protocol=tcp -h localhost -P 3306 -u root -pPassword12! status) -and ((Get-Date) - $startTime).TotalMinutes -lt $waitMinutes)
+              {
+                Start-Sleep -Seconds $pollingIntervalSeconds
+              }
+              if (!$started)
+              {
+                throw "$(databaseServerType):$(databaseServerVersion) docker container failed to start in $(waitMinutes) minutes"
+                exit 1
+              }
+      - name: Setup Database MySQL
+        if: ${{matrix.os == 'ubuntu-latest'}}
+        shell: pwsh
+        run: |
+          $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlCurrentSqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans; """
+          $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
+          $mySqlCommand
+          Invoke-Expression $mySqlCommand
+      - name: "Checkout"
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+          fetch-depth: 0
+      - name: "Install .NET Core SDK"
+        uses: actions/setup-dotnet@v2
+      - name: "Dotnet Tool Restore"
+        run: dotnet tool restore
+        shell: pwsh
+      - name: "Dotnet Cake Build"
+        run: dotnet cake --target=Build
+        shell: pwsh
+      - name: Build Bundler ${{matrix.version}}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj
+      - name: Copy Source/WebScheduler.DataMigrations/efbundle to ./Artifacts/efbundle
+        run: mkdir -p ./Artifacts/migrator && mv efbundle ./Artifacts/migrator/
+      - name: Execute Bundler ${{matrix.db}}:${{matrix.version}}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: ./Artifacts/migrator/efbundle
+      - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
+        run: dotnet cake --target=Test
+        shell: pwsh
+      - name: "Dotnet Cake Publish"
+        run: dotnet cake --target=Publish
+        shell: pwsh
+      - name: "Dotnet Cake Pack"
+        run: dotnet cake --target=Pack
+      - name: "Publish Artifacts"
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.os}}
+          path: "./Artifacts"
+      - name: "List all files"
+        run: ls -R
+
+  test:
+    name: Test-${{matrix.os}}-${{matrix.db}}:${{matrix.version}}
+    needs: ["build"]
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
@@ -82,28 +161,15 @@ jobs:
           $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
           $mySqlCommand
           Invoke-Expression $mySqlCommand
-      - name: "Checkout"
-        uses: actions/checkout@v3
+      - name: "Download Artifact"
+        uses: actions/download-artifact@v3
         with:
-          lfs: true
-          fetch-depth: 0
-      - name: "Install .NET Core SDK"
-        uses: actions/setup-dotnet@v2
-      - name: "Dotnet Tool Restore"
-        run: dotnet tool restore
-        shell: pwsh
-      - name: "Dotnet Cake Build"
-        run: dotnet cake --target=Build
-        shell: pwsh
-      - name: Build Bundler ${{matrix.version}}
+          name: "ubuntu-latest"
+      - name: "List all files"
+        run: ls -R
+      - name: Execute efBundle ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj
-      - name: Copy Source/WebScheduler.DataMigrations/efbundle to ./Artifacts/efbundle
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: cp efbundle ./Artifacts
-      - name: Execute Bundler ${{matrix.db}}:${{matrix.version}}
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: ./Artifacts/efbundle
+        run: ./migrator/efbundle
       - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
         run: dotnet cake --target=Test
         shell: pwsh
@@ -112,8 +178,6 @@ jobs:
         shell: pwsh
       - name: "Dotnet Cake Pack"
         run: dotnet cake --target=Pack
-      - name: "List all files"
-        run: ls -R
       - name: "Publish Artifacts"
         uses: actions/upload-artifact@v3
         with:
@@ -124,6 +188,7 @@ jobs:
 
   docker:
     name: Docker-${{matrix.os}}
+    needs: ["build","test"]
     env:
       DOCKER_IMAGE_NAME: web-scheduler-server
       DOCKER_REGISTRY: registry.digitalocean.com
@@ -182,9 +247,10 @@ jobs:
                 "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/${{env.DOCKER_IMAGE_NAME}}",
                 "tag": "${{ steps.read_file.outputs.contents }}"
               }]'
+
   push-github-packages:
     name: "Push GitHub Packages"
-    needs: build
+    needs: ["build","test","docker"]
     environment:
       name: "GitHub Packages"
       url: https://github.com/web-scheduler/web-scheduler/packages
@@ -205,7 +271,7 @@ jobs:
 
   push-nuget:
     name: "Push NuGet Packages"
-    needs: build
+    needs: ["build","test","docker"]
     if: github.event_name == 'release'
     environment:
       name: "NuGet"
