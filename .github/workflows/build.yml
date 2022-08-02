@@ -226,10 +226,16 @@ jobs:
       - name: "Dotnet Tool Restore"
         run: dotnet tool restore
         shell: pwsh
-      - name: "Download Artifact"
+      - name: "Download Artifact - WebScheduler.Server"
         uses: actions/download-artifact@v3
         with:
           name: WebScheduler.Server
+          path: "./WebScheduler.Server"
+      - name: Download Artifact - Migrator
+        uses: actions/download-artifact@v3
+        with:
+          name: migrator
+          path: "./migrator"
       - name: "Install QEMU"
         id: qemu
         uses: docker/setup-qemu-action@v2
@@ -245,19 +251,10 @@ jobs:
         run: dotnet cake --target=DockerBuild --push=${{github.event_name == 'release'}}
         shell: pwsh
       - name: Read file contents from DOCKER_TAG
-        if: github.event_name == 'release'
         id: read_file
         uses: andstor/file-reader-action@v1
         with:
           path: "./Artifacts/DOCKER_TAG"
-      - name: "Docker Deploy Echo"
-        run: |
-              echo '[
-              {
-                "name": "web-scheduler-server",
-                "repository": "${ steps.read_file.outputs.contents  }",
-                "tag": "${{ steps.read_file.outputs.contents }}"
-              }]'
       - name: DigitalOcean App Platform deployment
         if:  github.event_name == 'release'
         uses: digitalocean/app_action@main
@@ -267,7 +264,7 @@ jobs:
           images: '[
               {
                 "name": "web-scheduler-server",
-                "repository": "${ steps.read_file.outputs.contents  }",
+                "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/webscheduler-server",
                 "tag": "${{ steps.read_file.outputs.contents }}"
               }]'
 

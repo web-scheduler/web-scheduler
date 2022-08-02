@@ -8,6 +8,8 @@ var platform =
 var push =
     HasArgument("Push") ? Argument<bool>("Push") :
     EnvironmentVariable("Push", false);
+var version = GetVersion();
+System.IO.File.WriteAllText(System.IO.Path.Join(ArtifactsDirectory, "DOCKER_TAG"), $"{version}");
 
 
 
@@ -118,7 +120,6 @@ Task("DockerBuild")
     .DoesForEach(GetFiles("./**/Dockerfile"), dockerfile =>
     {
         var tag = $"{Environment.GetEnvironmentVariable("DOCKER_REGISTRY")}/{Environment.GetEnvironmentVariable("DOCKER_REPOSITORY_NAME")}/{dockerfile.GetDirectory().GetDirectoryName().ToLower().Replace(".", "-")}"; 
-        var version = GetVersion();
         var gitCommitSha = GetGitCommitSha();
 
         // Docker buildx allows you to build Docker images for multiple platforms (including x64, x86 and ARM64) and
@@ -129,7 +130,6 @@ Task("DockerBuild")
         // See https://github.com/docker/buildx
 
         System.IO.Directory.CreateDirectory(ArtifactsDirectory);
-        System.IO.File.WriteAllText(System.IO.Path.Join(ArtifactsDirectory, "DOCKER_TAG"), $"{tag}:{version}");
         StartProcess(
             "docker",
             new ProcessArgumentBuilder()
@@ -169,35 +169,35 @@ Task("DockerBuild")
         //             .RenderSafe());
         // }
 
-        string GetVersion()
-        {
-            var directoryBuildPropsFilePath = GetFiles("Directory.Build.props").Single().ToString();
-            var directoryBuildPropsDocument = System.Xml.Linq.XDocument.Load(directoryBuildPropsFilePath);
-            var preReleasePhase = directoryBuildPropsDocument.Descendants("MinVerDefaultPreReleasePhase").Single().Value;
-
-            StartProcess(
-                "dotnet",
-                new ProcessSettings()
-                    .WithArguments(x => x
-                        .Append("minver"))
-                       // .AppendSwitch("--default-pre-release-phase", preReleasePhase)
-                    .SetRedirectStandardOutput(true),
-                    out var versionLines);
-            return versionLines.LastOrDefault();
-        }
-
-        string GetGitCommitSha()
-        {
-            StartProcess(
-                "git",
-                new ProcessSettings()
-                    .WithArguments(x => x.Append("rev-parse HEAD"))
-                    .SetRedirectStandardOutput(true),
-                out var shaLines);
-            return shaLines.LastOrDefault();
-        }
+      
     });
+string GetVersion()
+{
+    var directoryBuildPropsFilePath = GetFiles("Directory.Build.props").Single().ToString();
+    var directoryBuildPropsDocument = System.Xml.Linq.XDocument.Load(directoryBuildPropsFilePath);
+    var preReleasePhase = directoryBuildPropsDocument.Descendants("MinVerDefaultPreReleasePhase").Single().Value;
 
+    StartProcess(
+        "dotnet",
+        new ProcessSettings()
+            .WithArguments(x => x
+                .Append("minver"))
+                // .AppendSwitch("--default-pre-release-phase", preReleasePhase)
+            .SetRedirectStandardOutput(true),
+            out var versionLines);
+    return versionLines.LastOrDefault();
+}
+
+string GetGitCommitSha()
+{
+    StartProcess(
+        "git",
+        new ProcessSettings()
+            .WithArguments(x => x.Append("rev-parse HEAD"))
+            .SetRedirectStandardOutput(true),
+        out var shaLines);
+    return shaLines.LastOrDefault();
+}
 Task("Default")
     .Description("Cleans, restores NuGet packages, builds the solution, runs unit tests and then builds a Docker image, then publishes packages.")
     .IsDependentOn("Build")
