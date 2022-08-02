@@ -83,7 +83,7 @@ jobs:
         run: mkdir -p ./migrator
       - name: Build Bundler ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj -o ./migrator/efbundle
+        run: dotnet ef migrations bundle --self-contained --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj -o ./migrator/efbundle
       - name: Execute Bundler ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: ./migrator/efbundle
