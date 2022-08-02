@@ -119,7 +119,12 @@ Task("DockerBuild")
     .Description("Builds a Docker image.")
     .DoesForEach(GetFiles("./**/Dockerfile"), dockerfile =>
     {
-        var tag = $"{Environment.GetEnvironmentVariable("DOCKER_REGISTRY")}/{Environment.GetEnvironmentVariable("DOCKER_REPOSITORY_NAME")}/{dockerfile.GetDirectory().GetDirectoryName().ToLower().Replace(".", "-")}"; 
+        if(dockerfile.GetDirectory().GetDirectoryName().ToLower() == ".devcontainer") {
+            return;
+        }
+        
+        var tag = $"{Environment.GetEnvironmentVariable("DOCKER_REGISTRY")}/{Environment.GetEnvironmentVariable("DOCKER_REPOSITORY_NAME")}/{dockerfile.GetDirectory().GetDirectoryName().ToLower().Replace(".", "-")}";
+        Console.WriteLine($"Building for '{tag}:{version}'");
         var gitCommitSha = GetGitCommitSha();
 
         // Docker buildx allows you to build Docker images for multiple platforms (including x64, x86 and ARM64) and
@@ -129,7 +134,6 @@ Task("DockerBuild")
         // To stop using buildx remove the buildx parameter and the --platform, --progress switches.
         // See https://github.com/docker/buildx
 
-        System.IO.Directory.CreateDirectory(ArtifactsDirectory);
         StartProcess(
             "docker",
             new ProcessArgumentBuilder()
