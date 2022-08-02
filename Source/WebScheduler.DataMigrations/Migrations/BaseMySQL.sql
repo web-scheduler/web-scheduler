@@ -1,4 +1,3 @@
-/*!80013 SET SQL_REQUIRE_PRIMARY_KEY = 0 */;
 /*
 Implementation notes:
 

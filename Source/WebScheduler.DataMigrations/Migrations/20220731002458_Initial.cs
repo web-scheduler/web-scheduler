@@ -6,7 +6,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 public partial class Initial : Migration
 {
-    protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql(GetFromResources("WebScheduler.DataMigrations.Migrations.BaseMySQL.sql"));
+    protected override void Up(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.Sql("/*!80013 SET SQL_REQUIRE_PRIMARY_KEY = 0 */;");
+        migrationBuilder.Sql(GetFromResources("WebScheduler.DataMigrations.Migrations.BaseMySQL.sql"));
+    }
+
     private static string GetFromResources(string filename)
     {
         var thisAssembly = typeof(Initial).Assembly;
