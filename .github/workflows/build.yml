@@ -203,12 +203,10 @@ jobs:
     needs: ["build","bundler-test"]
     env:
       DOCKER_REGISTRY: registry.digitalocean.com
-      DOCKER_USERNAME: ${{secrets.DOCR_USER}}
-      DOCKER_PASSWORD: ${{secrets.DOCR_PASSWORD}}
       DOCKER_REPOSITORY_NAME: web-scheduler
-    #environment: #TODO: Switch this to PR URL
-    #   name: "DOCR registry.digitalocean.com/web-scheduler"
-    #   url: https://registry.digitalocean.com/web-scheduler/web-scheduler-server
+    environment: #TODO: Switch this to PR URL
+       name: "DOCR registry.digitalocean.com/web-scheduler"
+       url: https://registry.digitalocean.com/web-scheduler/web-scheduler-server
     permissions:
       packages: write
     runs-on: ${{matrix.os}}
@@ -244,8 +242,7 @@ jobs:
       - name: "Install Docker BuildX"
         uses: docker/setup-buildx-action@v2
       - name: "Docker Login"
-        if: github.event_name == 'release'
-        run: echo ${{env.DOCKER_PASSWORD}} | docker login ${{env.DOCKER_REGISTRY}} --username ${{env.DOCKER_USERNAME}} --password-stdin
+        run: echo ${{secrets.DOCR_PASSWORD}} | docker login ${{env.DOCKER_REGISTRY}} --username ${{secrets.DOCR_USER}} --password-stdin
         shell: pwsh
       - name: "Dotnet Cake DockerBuild"
         run: dotnet cake --target=DockerBuild --push=${{github.event_name == 'release'}}
