@@ -16,11 +16,11 @@ public class OrleansDbContextFactory : IDesignTimeDbContextFactory<OrleansDbCont
           .AddEnvironmentVariables();
 
         var configuration = configurationBuilder.Build();
-        var connectionString = configuration["ConnectionStrings:Default"];
+        var connectionString = configuration.GetConnectionString("Default");
 
         var optionsBuilder = new DbContextOptionsBuilder<OrleansDbContext>()
            .UseMySql(connectionString,
-                        MySqlServerVersion.LatestSupportedServerVersion,
+                        ServerVersion.AutoDetect(connectionString),
                         dbOpts => dbOpts.MigrationsAssembly(typeof(OrleansDbContextFactory).Assembly.FullName).EnableRetryOnFailure());
         return new OrleansDbContext(optionsBuilder.Options);
     }
