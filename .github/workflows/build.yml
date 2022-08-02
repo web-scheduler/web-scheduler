@@ -90,7 +90,7 @@ jobs:
       - name: "Publish Artifact - migrator"
         uses: actions/upload-artifact@v3
         with:
-          name: ${{matrix.os}}
+          name: migrator-${{matrix.os}}
           path: "./migrator"
       - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
         run: dotnet cake --target=Test
