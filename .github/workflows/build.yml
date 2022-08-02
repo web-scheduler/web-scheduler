@@ -108,7 +108,7 @@ jobs:
       - name: "List all files"
         run: ls -R
 
-  test:
+  bundler-test:
     name: Test-${{matrix.os}}-${{matrix.db}}:${{matrix.version}}
     needs: ["build"]
     runs-on: ${{matrix.os}}
@@ -166,10 +166,6 @@ jobs:
           $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
           $mySqlCommand
           Invoke-Expression $mySqlCommand
-      - name: "Download Artifacts"
-        uses: actions/download-artifact@v3
-        with:
-          name: "ubuntu-latest"
       - name: "Download Artifact - migrator"
         uses: actions/download-artifact@v3
         with:
@@ -180,20 +176,10 @@ jobs:
       - name: Execute efBundle ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: ./migrator/efbundle
-      - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
-        run: dotnet cake --target=Test
-        shell: pwsh
-      - name: "Publish Artifacts"
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{matrix.os}}
-          path: "./Artifacts"
-      - name: "List all files"
-        run: ls -R
 
   docker:
     name: Docker-${{matrix.os}}
-    needs: ["build","test"]
+    needs: ["build","bundler-test"]
     env:
       DOCKER_IMAGE_NAME: web-scheduler-server
       DOCKER_REGISTRY: registry.digitalocean.com
@@ -255,7 +241,7 @@ jobs:
 
   push-github-packages:
     name: "Push GitHub Packages"
-    needs: ["build","test","docker"]
+    needs: ["build","bundler-test","docker"]
     environment:
       name: "GitHub Packages"
       url: https://github.com/web-scheduler/web-scheduler/packages
@@ -276,7 +262,7 @@ jobs:
 
   push-nuget:
     name: "Push NuGet Packages"
-    needs: ["build","test","docker"]
+    needs: ["build","bundler-test","docker"]
     if: github.event_name == 'release'
     environment:
       name: "NuGet"
