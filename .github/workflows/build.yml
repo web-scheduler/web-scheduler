@@ -95,6 +95,8 @@ jobs:
       - name: "Dotnet Cake Build"
         run: dotnet cake --target=Build
         shell: pwsh
+      - name: Dump env
+        run: env
       - name: "List all files"
         run: ls -R
       - name: Build Bundler ${{matrix.version}}
