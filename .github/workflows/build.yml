@@ -189,13 +189,12 @@ jobs:
       - name: "Download Artifact - migrator"
         uses: actions/download-artifact@v3
         with:
-          name: migrator
-          path: ./migrator
+          name: migrator-${{matrix.os}}
       - name: "List all files"
         run: ls -R
       - name: Execute efBundle ${{matrix.db}}:${{matrix.version}}
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: ./migrator/efbundle
+        run: efbundle
 
   docker:
     name: Docker-${{matrix.os}}
