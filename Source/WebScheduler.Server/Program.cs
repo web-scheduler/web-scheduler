@@ -15,6 +15,8 @@ using Serilog.Extensions.Hosting;
 using WebScheduler.Grains.HealthChecks;
 using Boxed.AspNetCore;
 using WebScheduler.Server.Interceptors;
+using WebScheduler.Grains.Constants;
+using Serilog.Formatting.Compact;
 
 #pragma warning disable RCS1102 // Make class static.
 public class Program
@@ -27,13 +29,16 @@ public class Program
 
         try
         {
-            Log.Information("Initializing.");
             host = CreateHostBuilder(args).Build();
 
             host.LogApplicationStarted();
             await host.RunAsync().ConfigureAwait(true);
-            host.LogApplicationStopped();
+            host!.LogApplicationStopped();
 
+            return 0;
+        }
+        catch (OrleansLifecycleCanceledException)
+        {
             return 0;
         }
         catch (Exception exception)
@@ -86,10 +91,10 @@ public class Program
                 })
             .UseSiloUnobservedExceptionsHandler()
             .UseAdoNetClustering(options =>
-            {
-                options.Invariant = GetStorageOptions(context.Configuration).Invariant;
-                options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
-            })
+                {
+                    options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                    options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                })
             .ConfigureEndpoints(
                 EndpointOptions.DEFAULT_SILO_PORT,
                 EndpointOptions.DEFAULT_GATEWAY_PORT,
@@ -102,41 +107,42 @@ public class Program
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-              .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskState, options =>
-              {
-                  options.Invariant = GetStorageOptions(context.Configuration).Invariant;
-                  options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
-                  options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
-                  options.UseJsonFormat = true;
-              })
-              .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadataHistory, options =>
-              {
-                  options.Invariant = GetStorageOptions(context.Configuration).Invariant;
-                  options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
-                  options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
-                  options.UseJsonFormat = true;
-              })
-            .UseAdoNetReminderService(options =>
-                {
-                    options.Invariant = GetStorageOptions(context.Configuration).Invariant;
-                    options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
-                })
-            .AddSimpleMessageStreamProvider(StreamProviderName.ScheduledTasks)
-            .AddAdoNetGrainStorage(
-                GrainStorageProviderName.PubSubStore,
-                options =>
+            .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskState, options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-            .UseIf(
-                RuntimeInformation.IsOSPlatform(OSPlatform.Linux),
-                x => x.UseLinuxEnvironmentStatistics())
-            .UseIf(
-                RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
-                x => x.UsePerfCounterEnvironmentStatistics())
+            .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadataHistory, options =>
+                {
+                    options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                    options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                    options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
+                    options.UseJsonFormat = true;
+                })
+            .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskTriggerHistory, options =>
+            {
+                options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
+                options.UseJsonFormat = true;
+            })
+            .UseAdoNetReminderService(options =>
+                {
+                    options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                    options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                })
+            .AddSimpleMessageStreamProvider(StreamProviderName.ScheduledTasks)
+            .AddAdoNetGrainStorage(GrainStorageProviderName.PubSubStore, options =>
+                {
+                    options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                    options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                    options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
+                    options.UseJsonFormat = true;
+                })
+            .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Linux), x => x.UseLinuxEnvironmentStatistics())
+            .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), x => x.UsePerfCounterEnvironmentStatistics())
             .UseDashboard(options => options.BasePath = GetOrleansDashboardOptions(context.Configuration).BasePath);
 
     private static void ConfigureWebHostBuilder(IWebHostBuilder webHostBuilder) =>
@@ -158,8 +164,7 @@ public class Program
     /// <returns>A logger that can load a new configuration.</returns>
     private static ReloadableLogger CreateBootstrapLogger() =>
         new LoggerConfiguration()
-            .WriteTo.Console()
-            .WriteTo.Debug()
+            .WriteTo.Console(new CompactJsonFormatter())
             .CreateBootstrapLogger();
 
     /// <summary>
@@ -177,8 +182,7 @@ public class Program
             .ReadFrom.Configuration(context.Configuration)
             .ReadFrom.Services(services)
             .Enrich.WithProperty("Application", context.HostingEnvironment.ApplicationName)
-            .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName)
-            .WriteTo.Console();
+            .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName);
 
     private static void ConfigureJsonSerializerSettings(JsonSerializerSettings jsonSerializerSettings)
     {
