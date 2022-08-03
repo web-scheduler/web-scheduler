@@ -1,10 +1,12 @@
 namespace WebScheduler.Abstractions.Grains.Scheduler;
 using System.Threading.Tasks;
 using Orleans;
+using Orleans.CodeGeneration;
 
 /// <summary>
 /// A scheduled task grain
 /// </summary>
+[Version(1)]
 public interface IScheduledTaskGrain : IGrainWithStringKey
 {
     /// <summary>

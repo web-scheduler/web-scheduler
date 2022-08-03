@@ -13,6 +13,8 @@ using WebScheduler.Abstractions.Grains.Scheduler;
 using WebScheduler.Abstractions.Grains.History;
 using System.Text.Json;
 using Orleans.Concurrency;
+using WebScheduler.Grains.Constants;
+using System.Diagnostics;
 
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>
 {
@@ -203,7 +205,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
     private async ValueTask EnsureHistoryQueueProcessorReminderAsync()
     {
-        if (this.taskState.State.HistoryBuffer.Count == 0)
+        if (this.AreHistoryBuffersEmpty())
         {
             return;
         }
@@ -288,47 +290,18 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         switch (reminderName)
         {
             case ScheduledTaskReminderName:
-                // We don't have a next run, so disable
-                if (this.taskState.State.Task.NextRunAt is null)
-                {
-                    await this.DisableReminderAsync().ConfigureAwait(true);
-                    break;
-                }
-                var now = this.clockService.UtcNow;
-                // If our interval exceeds max reminder dueTime, then we setup the reminder for the next interval
-                if (this.taskState.State.Task.NextRunAt > now)
-                {
-                    await this.SetupReminderAsync().ConfigureAwait(true);
-                    break;
-                }
-
-                // TODO: Log failures to task history
-                _ = await this.ProcessTaskAsync().ConfigureAwait(true);
-
-                this.taskState.State.Task.LastRunAt = status.CurrentTickTime;
-                if (this.expression is null)
-                {
-                    await this.DisableReminderAsync().ConfigureAwait(true);
-                    break;
-                }
-
-                this.taskState.State.Task.NextRunAt = this.expression?.GetNextOccurrence(status.CurrentTickTime);
-                this.taskState.State.Task.ModifiedAt = now;
-                await this.taskState.WriteStateAsync().ConfigureAwait(true);
-
-                await this.SetupReminderAsync().ConfigureAwait(true);
-                break;
-            case HistoryReminderName:
-                // Let's process the history queue
-                await this.ProcessHistoryQueueAsync(batchSize: 10).ConfigureAwait(true);
+                await this.ProcessScheduledTaskReminderNameAsync(status).ConfigureAwait(true);
                 break;
             default:
                 this.logger.UnknownReminderName(reminderName);
                 break;
         }
 
-        // Ensure History buffer can empty out
-        if (this.taskState.State.HistoryBuffer.Count == 0)
+        // Let's process the history queue after the timer tick and try to clear any backlogs.
+        await this.ProcessHistoryQueuesAsync(batchSizePerQueue: 20).ConfigureAwait(true);
+
+        // Ensure History buffer reminder is removed if nothing to process.
+        if (this.AreHistoryBuffersEmpty())
         {
             this.historyReminder = await this.GetReminder(HistoryReminderName).ConfigureAwait(true);
 
@@ -344,22 +317,70 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1)).ConfigureAwait(true);
     }
 
-    private async ValueTask ProcessHistoryQueueAsync(int batchSize)
+    private async Task ProcessScheduledTaskReminderNameAsync(TickStatus status)
+    {
+        // We don't have a next run, so disable
+        if (this.taskState.State.Task.NextRunAt is null)
+        {
+            await this.DisableReminderAsync().ConfigureAwait(true);
+            return;
+        }
+        var now = this.clockService.UtcNow;
+        // If our interval exceeds max reminder dueTime, then we setup the reminder for the next interval
+        if (this.taskState.State.Task.NextRunAt > now)
+        {
+            await this.SetupReminderAsync().ConfigureAwait(true);
+            return;
+        }
+
+        var sw = new Stopwatch();
+        sw.Start();
+        var historyRecord = await this.ProcessTaskAsync().ConfigureAwait(true);
+        sw.Stop();
+
+        historyRecord.State.CurrentTickTime = status.CurrentTickTime;
+        historyRecord.State.Period = status.Period;
+        historyRecord.State.FirstTickTime = status.FirstTickTime;
+        historyRecord.State.Duration = sw.Elapsed;
+
+        this.taskState.State.TriggerHistoryBuffer.Add(historyRecord);
+
+        this.taskState.State.Task.LastRunAt = status.CurrentTickTime;
+        if (this.expression is null)
+        {
+            await this.DisableReminderAsync().ConfigureAwait(true);
+            return;
+        }
+
+        this.taskState.State.Task.NextRunAt = this.expression.GetNextOccurrence(status.CurrentTickTime);
+        this.taskState.State.Task.ModifiedAt = now;
+        await this.taskState.WriteStateAsync().ConfigureAwait(true);
+
+        await this.SetupReminderAsync().ConfigureAwait(true);
+    }
+
+    private bool AreHistoryBuffersEmpty() => this.taskState.State.HistoryBuffer.Count == 0 && this.taskState.State.TriggerHistoryBuffer.Count == 0;
+    private async ValueTask ProcessHistoryQueuesAsync(int batchSizePerQueue = 10) => await Task.WhenAll(this.ProcessHistoryQueueAsync(this.taskState.State.HistoryBuffer, batchSizePerQueue).AsTask(),
+                                                                                                this.ProcessHistoryQueueAsync(this.taskState.State.TriggerHistoryBuffer, batchSizePerQueue).AsTask())
+                                                                                                .ConfigureAwait(true);
+    private async ValueTask ProcessHistoryQueueAsync<TStateType, TOperationType>(List<HistoryState<TStateType, TOperationType>> buffer, int batchSize)
+        where TStateType : class, IHistoryRecordKeyPrefix, new()
+        where TOperationType : Enum
     {
         for (var i = 0; i < batchSize; i++)
         {
-            if (this.taskState.State.HistoryBuffer.Count == 0)
+            if (buffer.Count == 0)
             {
                 return;
             }
 
-            var historyRecord = this.taskState.State.HistoryBuffer[0];
-            var id = $"{this.GetPrimaryKeyString()}-{historyRecord.RecordedAt:u}";
+            var historyRecord = buffer[0];
+            var id = $"{this.GetPrimaryKeyString()}-{historyRecord.State.KeyPrefix()}{historyRecord.RecordedAt:u}";
 
             // 1. Record History. If we fail here it is OK as it is an idempotent operation and we'll get it next time.
             try
             {
-                var recorder = this.clusterClient.GetGrain<IHistoryGrain<ScheduledTaskMetadata, ScheduledTaskOperationType>>(id);
+                var recorder = this.clusterClient.GetGrain<IHistoryGrain<TStateType, TOperationType>>(id);
                 var result = await recorder.RecordAsync(historyRecord).ConfigureAwait(true);
 
                 // Recorder failed to record.
@@ -375,7 +396,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             }
 
             // 2. Remove from the buffer
-            this.taskState.State.HistoryBuffer.RemoveAt(0);
+            buffer.RemoveAt(0);
 
             // 3. Persist state. If this succeeds, great, we've removed the record from the list.
             // if it fails, that is fine, beacause we reinsert it at the head of the list in the catch block.
@@ -389,18 +410,24 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 this.logger.ErrorWritingState(ex, this.GetPrimaryKeyString());
 
                 // Add the item back to the list.
-                this.taskState.State.HistoryBuffer.Insert(0, historyRecord);
+                buffer.Insert(0, historyRecord);
             }
         }
     }
-    private async Task<bool> ProcessTaskAsync() => this.taskState.State.Task.TriggerType switch
+    private async Task<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>> ProcessTaskAsync() => this.taskState.State.Task.TriggerType switch
     {
         TaskTriggerType.HttpTrigger => await this.ProcessHttpTriggerAsync(this.taskState.State.Task.HttpTriggerProperties).ConfigureAwait(true),
-        _ => false,// do nothing on unknown task type so we don't break.
+        _ => throw new ArgumentOutOfRangeException(nameof(this.taskState.State.Task.TriggerType), this.taskState.State.Task.TriggerType, "Invalid trigger type"),
     };
 
-    private async Task<bool> ProcessHttpTriggerAsync(HttpTriggerProperties httpTriggerProperties)
+    private async Task<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>> ProcessHttpTriggerAsync(HttpTriggerProperties httpTriggerProperties)
     {
+        var result = new HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>()
+        {
+            RecordedAt = this.clockService.UtcNow,
+            Operation = TaskTriggerType.HttpTrigger,
+        };
+
         var client = this.httpClientFactory.CreateClient();
 
         StringContent? content = null;
@@ -442,22 +469,26 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             }
 
             var response = await client.SendAsync(requestMessage).ConfigureAwait(true);
+            result.State.HttpStatusCode = response.StatusCode;
+            result.State.Headers = response.Headers.ToHashSet();
+            result.State.HttpContent = await response.Content.ReadAsStringAsync().ConfigureAwait(true);
+
             _ = response.EnsureSuccessStatusCode();
-            return true;
+
+            result.State.Result = TriggerResult.Success;
         }
         catch (Exception ex)
         {
             this.logger.ErrorExecutingHttpTrigger(ex, this.GetPrimaryKeyString());
+            result.State.Error = ex.Message;
+            result.State.Result = TriggerResult.Failed;
         }
         finally
         {
-            if (content is not null)
-            {
-                content.Dispose();
-            }
+            content?.Dispose();
         }
 
-        return false;
+        return result;
     }
 
     [ReadOnly]
@@ -470,13 +501,4 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         return new(this.taskState.State.TenantId == tenantId);
     }
-}
-public static class IPersistentStateScheduledTaskStateExtensions
-{
-    /// <summary>
-    /// Checks if the given state exists.
-    /// </summary>
-    /// <param name="state"></param>
-    /// <returns>true for yes, false for no.</returns>
-    public static bool Exists(this IPersistentState<ScheduledTaskState> state) => state.State.TenantId != Guid.Empty && !state.State.IsDeleted;
 }

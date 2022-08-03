@@ -13,9 +13,14 @@ public class ScheduledTaskState
     public ScheduledTaskMetadata Task { get; set; } = new();
 
     /// <summary>
-    /// The temporary buffer of history records to move to <seealso cref="IHistoryGrain{TGrainState, TOperationTypes}"/> in a reliable way.
+    /// The temporary buffer of history records to move to <seealso cref="IHistoryGrain{ScheduledTaskMetadata, ScheduledTaskOperationType}"/> in a reliable way.
     /// </summary>
     public List<HistoryState<ScheduledTaskMetadata, ScheduledTaskOperationType>> HistoryBuffer { get; set; } = new();
+
+    /// <summary>
+    /// The temporary buffer of history records to move to <seealso cref="IHistoryGrain{ScheduledTaskTriggerHistory, TaskTriggerType}"/> in a reliable way.
+    /// </summary>
+    public List<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>> TriggerHistoryBuffer { get; set; } = new();
 
     /// <summary>
     /// The owning tenantId.

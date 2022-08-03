@@ -17,6 +17,11 @@ internal static class HostExtensions
 
     public static void LogApplicationStopped(this IHost host)
     {
+        if (host is null)
+        {
+            return;
+        }
+
         var hostEnvironment = host.Services.GetRequiredService<IHostEnvironment>();
         var logger = host.Services.GetRequiredService<ILogger<Program>>();
         logger.ApplicationStopped(
