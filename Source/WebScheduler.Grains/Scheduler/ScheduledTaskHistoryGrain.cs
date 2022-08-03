@@ -33,7 +33,7 @@ public class ScheduledTaskHistoryGrain : Grain, IHistoryGrain<ScheduledTaskMetad
         {
             this.historyRecordState.State = history;
             await this.historyRecordState.WriteStateAsync().ConfigureAwait(true);
-            this.DeactivateOnIdle();
+
             return true;
         }
         catch (Exception ex)
