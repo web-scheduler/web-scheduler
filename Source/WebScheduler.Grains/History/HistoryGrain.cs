@@ -4,11 +4,14 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Concurrency;
+using Orleans.Placement;
 using Orleans.Runtime;
 using WebScheduler.Abstractions.Grains.History;
+using WebScheduler.Abstractions.Grains.Scheduler;
 
+[PreferLocalPlacement]
 public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrain<TModel, TOperationType>
-    where TModel : class, new()
+    where TModel : class, IHistoryRecordKeyPrefix, new()
     where TOperationType : Enum
 {
     private readonly ILogger logger;

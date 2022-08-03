@@ -1,12 +1,14 @@
 namespace WebScheduler.Abstractions.Grains.History;
 
+using WebScheduler.Abstractions.Grains.Scheduler;
+
 /// <summary>
 /// The state object for state History.
 /// </summary>
 /// <typeparam name="TStateType">The state being stored.</typeparam>
 /// <typeparam name="TOperationType">The operation type.</typeparam>
 public class HistoryState<TStateType, TOperationType>
-    where TStateType : class, new()
+    where TStateType : class, IHistoryRecordKeyPrefix, new()
     where TOperationType : Enum
 {
     /// <summary>

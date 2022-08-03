@@ -17,6 +17,8 @@ using Boxed.AspNetCore;
 using WebScheduler.Server.Interceptors;
 using WebScheduler.Grains.Constants;
 using Serilog.Formatting.Compact;
+using Orleans.Versions.Compatibility;
+using Orleans.Versions.Selector;
 
 #pragma warning disable RCS1102 // Make class static.
 public class Program
@@ -89,6 +91,11 @@ public class Program
                     _ = services.ConfigureAndValidateSingleton<ClusterOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Cluster)));
                     _ = services.ConfigureAndValidateSingleton<StorageOptions>(context.Configuration.GetSection(nameof(ApplicationOptions.Storage)));
                 })
+            .Configure<GrainVersioningOptions>(options =>
+            {
+                options.DefaultCompatibilityStrategy = nameof(BackwardCompatible);
+                options.DefaultVersionSelectorStrategy = nameof(AllCompatibleVersions);
+            })
             .UseSiloUnobservedExceptionsHandler()
             .UseAdoNetClustering(options =>
                 {

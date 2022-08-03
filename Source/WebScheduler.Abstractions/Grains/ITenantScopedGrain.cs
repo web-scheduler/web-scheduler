@@ -3,11 +3,13 @@ namespace WebScheduler.Abstractions.Grains;
 using System;
 using System.Threading.Tasks;
 using Orleans;
+using Orleans.CodeGeneration;
 
 /// <summary>
 /// Used to validate tenant access.
 /// </summary>
 /// <typeparam name="TGrainInterface"></typeparam>
+[Version(1)]
 public interface ITenantScopedGrain<TGrainInterface> : IGrainWithStringKey
     where TGrainInterface : IGrain
 {

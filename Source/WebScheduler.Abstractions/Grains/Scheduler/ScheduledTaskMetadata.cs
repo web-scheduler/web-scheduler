@@ -3,7 +3,7 @@ namespace WebScheduler.Abstractions.Grains.Scheduler;
 /// <summary>
 /// Model for Scheduled Task metadata
 /// </summary>
-public class ScheduledTaskMetadata
+public class ScheduledTaskMetadata : IHistoryRecordKeyPrefix
 {
     /// <summary>
     /// Created timestamp.
@@ -59,4 +59,9 @@ public class ScheduledTaskMetadata
     /// The properties for the HttpTriggerTask.
     /// </summary>
     public HttpTriggerProperties HttpTriggerProperties { get; set; } = new();
+
+    /// <summary>
+    /// The key prefix.
+    /// </summary>
+    public string KeyPrefix() => "A";
 }

@@ -6,7 +6,7 @@ using System.Net;
 /// <summary>
 /// ScheduledTaskTriggerHistory holds the history of a trigger execution.
 /// </summary>
-public class ScheduledTaskTriggerHistory
+public class ScheduledTaskTriggerHistory : IHistoryRecordKeyPrefix
 {
     /// <summary>
     /// The disposition of the trigger execution.
@@ -28,17 +28,32 @@ public class ScheduledTaskTriggerHistory
     public string? HttpContent { get; set; }
 
     /// <summary>
-    /// The headers from the trigger execution response if any are available.
-    /// </summary>
-    public HashSet<KeyValuePair<string, IEnumerable<string>>>? Headers { get; set; }
-
-    /// <summary>
     /// The StatusCode from the trigger execution response if any are available.
     /// </summary>
     public HttpStatusCode? HttpStatusCode { get; set; }
 
     /// <summary>
-    /// The Reason for the StatusCode from the trigger execution response if any are available.
+    /// The time on the runtime silo when the silo initiated the delivery of this tick.
     /// </summary>
-    public string? HttpReasonPhrase { get; set; }
+    public DateTime CurrentTickTime { get; set; }
+
+    /// <summary>
+    /// The period of the reminder
+    /// </summary>
+    public TimeSpan Period { get; set; }
+
+    /// <summary>
+    /// The time at which the first tick of this reminder is due, or was triggered
+    /// </summary>
+    public DateTime FirstTickTime { get; set; }
+
+    /// <summary>
+    /// The headers from the trigger execution response if any are available.
+    /// </summary>
+    public HashSet<KeyValuePair<string, IEnumerable<string>>>? Headers { get; set; }
+
+    /// <summary>
+    /// The key prefix.
+    /// </summary>
+    public string KeyPrefix() => "T";
 }
