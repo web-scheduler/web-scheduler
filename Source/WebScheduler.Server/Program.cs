@@ -13,12 +13,10 @@ using Serilog;
 using Serilog.Extensions.Hosting;
 using Boxed.AspNetCore;
 using WebScheduler.Server.Interceptors;
-using WebScheduler.Grains.Constants;
 using Serilog.Formatting.Compact;
 using Orleans.Versions.Compatibility;
 using Orleans.Versions.Selector;
 using WebScheduler.Server.HealthChecks;
-using WebScheduler.Server.Constants;
 
 #pragma warning disable RCS1102 // Make class static.
 public class Program

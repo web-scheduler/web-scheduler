@@ -11,7 +11,7 @@ public static class StreamProviderName
     public const string Default = nameof(Default);
 
     /// <summary>
-    /// The storage provider name for PubSubStore.
+    /// The storage provider name for PubSub.
     /// </summary>
-    public const string PubSubStore = nameof(PubSubStore);
+    public const string PubSub = nameof(PubSub);
 }
