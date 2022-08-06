@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Orleans.Hosting;
 using Orleans.TestingHost;
 using Serilog.Extensions.Logging;
-using WebScheduler.Abstractions.Constants;
 using WebScheduler.Server.Constants;
 
 public class TestSiloConfigurator : ISiloConfigurator
@@ -14,5 +13,5 @@ public class TestSiloConfigurator : ISiloConfigurator
             .ConfigureServices(services => services.AddSingleton<ILoggerFactory>(_ => new SerilogLoggerFactory()))
             .AddMemoryGrainStorageAsDefault()
             .AddMemoryGrainStorage(GrainStorageProviderName.PubSubStore)
-            .AddSimpleMessageStreamProvider(Constants.StreamProviderName.PubSub);
+            .AddSimpleMessageStreamProvider(Constants.StreamProviderName.Default);
 }
