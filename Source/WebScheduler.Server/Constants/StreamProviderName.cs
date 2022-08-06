@@ -1,4 +1,4 @@
-namespace WebScheduler.Abstractions.Constants;
+namespace WebScheduler.Server.Constants;
 
 /// <summary>
 /// Constants for Stream Providers Name
@@ -11,7 +11,7 @@ public static class StreamProviderName
     public const string Default = nameof(Default);
 
     /// <summary>
-    /// The ScheduledTask stream provider name.
+    /// The storage provider name for PubSubStore.
     /// </summary>
-    public const string ScheduledTasks = nameof(ScheduledTasks);
+    public const string PubSubStore = nameof(PubSubStore);
 }

@@ -50,9 +50,7 @@ internal static class HostExtensions
                     RuntimeInformation.FrameworkDescription,
                     RuntimeInformation.OSDescription);
             }
-#pragma warning disable CA1031 // Do not catch general exception types
             catch
-#pragma warning restore CA1031 // Do not catch general exception types
             {
                 LogToConsole(exception);
             }

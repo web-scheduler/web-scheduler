@@ -1,4 +1,4 @@
-namespace WebScheduler.Abstractions.Constants;
+namespace WebScheduler.Server.Constants;
 
 /// <summary>
 /// Version of Open Telemetry Http

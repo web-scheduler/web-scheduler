@@ -4,7 +4,7 @@ using System.Reflection;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using WebScheduler.Abstractions.Constants;
+using WebScheduler.Server.Constants;
 
 /// <summary>
 /// <see cref="IServiceCollection"/> extension methods which extend ASP.NET Core services.
@@ -21,7 +21,7 @@ internal static class ServiceCollectionExtensions
         services.AddOpenTelemetryTracing(
             builder =>
             {
-                builder
+                _ = builder
                     .SetResourceBuilder(ResourceBuilder
                         .CreateEmpty()
                         .AddService(
@@ -39,28 +39,29 @@ internal static class ServiceCollectionExtensions
                         {
                             // Enrich spans with additional request and response meta data.
                             // See https://github.com/open-telemetry/opentelemetry-specification/blob/master/specification/trace/semantic_conventions/http.md
+#pragma warning disable RCS1163 // Unused parameter.
                             options.Enrich = (activity, eventName, obj) =>
                             {
                                 if (obj is HttpRequest request)
                                 {
                                     var context = request.HttpContext;
-                                    activity.AddTag(OpenTelemetryAttributeName.Http.Flavor, GetHttpFlavour(request.Protocol));
-                                    activity.AddTag(OpenTelemetryAttributeName.Http.Scheme, request.Scheme);
-                                    activity.AddTag(OpenTelemetryAttributeName.Http.ClientIP, context.Connection.RemoteIpAddress);
-                                    activity.AddTag(OpenTelemetryAttributeName.Http.RequestContentLength, request.ContentLength);
-                                    activity.AddTag(OpenTelemetryAttributeName.Http.RequestContentType, request.ContentType);
+                                    _ = activity.AddTag(OpenTelemetryAttributeName.Http.Flavor, GetHttpFlavour(request.Protocol))
+                                        .AddTag(OpenTelemetryAttributeName.Http.Scheme, request.Scheme)
+                                        .AddTag(OpenTelemetryAttributeName.Http.ClientIP, context.Connection.RemoteIpAddress)
+                                        .AddTag(OpenTelemetryAttributeName.Http.RequestContentLength, request.ContentLength)
+                                        .AddTag(OpenTelemetryAttributeName.Http.RequestContentType, request.ContentType);
 
                                     var user = context.User;
                                     if (user.Identity?.Name is not null)
                                     {
-                                        activity.AddTag(OpenTelemetryAttributeName.EndUser.Id, user.Identity.Name);
-                                        activity.AddTag(OpenTelemetryAttributeName.EndUser.Scope, string.Join(',', user.Claims.Select(x => x.Value)));
+                                        _ = activity.AddTag(OpenTelemetryAttributeName.EndUser.Id, user.Identity.Name)
+                                            .AddTag(OpenTelemetryAttributeName.EndUser.Scope, string.Join(',', user.Claims.Select(x => x.Value)));
                                     }
                                 }
                                 else if (obj is HttpResponse response)
                                 {
-                                    activity.AddTag(OpenTelemetryAttributeName.Http.ResponseContentLength, response.ContentLength);
-                                    activity.AddTag(OpenTelemetryAttributeName.Http.ResponseContentType, response.ContentType);
+                                    _ = activity.AddTag(OpenTelemetryAttributeName.Http.ResponseContentLength, response.ContentLength)
+                                        .AddTag(OpenTelemetryAttributeName.Http.ResponseContentType, response.ContentType);
                                 }
 
                                 static string GetHttpFlavour(string protocol)
@@ -85,12 +86,13 @@ internal static class ServiceCollectionExtensions
                                     throw new InvalidOperationException($"Protocol {protocol} not recognised.");
                                 }
                             };
+#pragma warning restore RCS1163 // Unused parameter.
                             options.RecordException = true;
                         });
 
                 if (webHostEnvironment.IsDevelopment())
                 {
-                    builder.AddConsoleExporter(
+                    _ = builder.AddConsoleExporter(
                         options => options.Targets = ConsoleExporterOutputTargets.Console | ConsoleExporterOutputTargets.Debug);
                 }
 

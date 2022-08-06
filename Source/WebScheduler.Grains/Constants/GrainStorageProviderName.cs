@@ -1,5 +1,7 @@
 namespace WebScheduler.Grains.Constants;
 
+using WebScheduler.Grains.Scheduler;
+
 /// <summary>
 /// Constants for Grain Storage provider Names.
 /// </summary>
@@ -19,9 +21,4 @@ public static class GrainStorageProviderName
     /// The storage provider name for <see cref="ScheduledTaskTriggerHistory "/>
     /// </summary>
     public const string ScheduledTaskTriggerHistory = nameof(ScheduledTaskTriggerHistory);
-
-    /// <summary>
-    /// The storage provider name for PubSubStore.
-    /// </summary>
-    public const string PubSubStore = nameof(PubSubStore);
 }

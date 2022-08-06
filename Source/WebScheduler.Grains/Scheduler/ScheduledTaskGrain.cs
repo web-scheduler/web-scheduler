@@ -16,6 +16,9 @@ using Orleans.Concurrency;
 using WebScheduler.Grains.Constants;
 using System.Diagnostics;
 
+/// <summary>
+/// A scheduled task grain
+/// </summary>
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>
 {
     private readonly ILogger<ScheduledTaskGrain> logger;
@@ -27,7 +30,14 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     private const string HistoryReminderName = "HistoryQueueProcessor";
     private CronExpression? expression;
     private IGrainReminder? historyReminder;
-
+    /// <summary>
+    /// The constructor.
+    /// </summary>
+    /// <param name="logger">logger</param>
+    /// <param name="clockService">clock</param>
+    /// <param name="httpClientFactory">httpClientFactory</param>
+    /// <param name="clusterClient">clusterClient</param>
+    /// <param name="task">state</param>
     public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger,
         IClockService clockService, IHttpClientFactory httpClientFactory, IClusterClient clusterClient,
         [PersistentState(StateName.ScheduledTaskState, GrainStorageProviderName.ScheduledTaskState)]
@@ -74,10 +84,6 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         return this.taskState.State.Task;
     }
 
-    /// <summary>
-    /// Enqueues a <see cref="HistoryState{TStateType}"/> to the buffer and writes the states to storage.
-    /// </summary>
-    /// <param name="operationType"></param>
     private async ValueTask WriteStateAsync(ScheduledTaskOperationType operationType)
     {
         // Clone the current state.
@@ -183,6 +189,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         await this.WriteStateAsync(ScheduledTaskOperationType.Delete).ConfigureAwait(true);
     }
 
+    /// <inheritdoc/>
     public override async Task OnActivateAsync()
     {
         await this.EnsureHistoryQueueProcessorReminderAsync().ConfigureAwait(true);
@@ -285,6 +292,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         await this.taskState.WriteStateAsync().ConfigureAwait(true);
     }
 
+    /// <inheritdoc/>
     public async Task ReceiveReminder(string reminderName, TickStatus status)
     {
         switch (reminderName)
@@ -491,6 +499,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         return result;
     }
 
+    /// <inheritdoc/>
     [ReadOnly]
     public ValueTask<bool?> IsOwnedByAsync(Guid tenantId)
     {

@@ -6,17 +6,17 @@ namespace WebScheduler.Grains.Constants;
 public static class StateName
 {
     /// <summary>
-    /// The constant for <see cref="Scheduler.ScheduledTaskMetadata"/> Grain State.
+    /// The constant for <see cref="Abstractions.Grains.Scheduler.ScheduledTaskMetadata"/> Grain State.
     /// </summary>
     public const string ScheduledTaskState = nameof(ScheduledTaskState);
 
     /// <summary>
-    /// The constant for <see cref="Scheduler.ScheduledTaskMetadata"/> History Grain State.
+    /// The constant for <see cref="Abstractions.Grains.Scheduler.ScheduledTaskMetadata"/> History Grain State.
     /// </summary>
     public const string ScheduledTaskMetadataHistory = nameof(ScheduledTaskMetadataHistory);
 
     /// <summary>
-    /// The constant for <see cref="Scheduler.ScheduledTaskTriggerHistory"/> History Grain State.
+    /// The constant for <see cref="ScheduledTaskTriggerHistory"/> History Grain State.
     /// </summary>
     public const string ScheduledTaskTriggerHistory = nameof(ScheduledTaskTriggerHistory);
 }

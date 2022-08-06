@@ -2,7 +2,6 @@ namespace WebScheduler.Server.HealthChecks;
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Orleans;
-using WebScheduler.Abstractions.Grains.HealthChecks;
 
 /// <summary>
 /// Verifies whether the <see cref="IStorageHealthCheckGrain"/> can read, write and clear state using the default
@@ -30,13 +29,9 @@ public class StorageHealthCheck : IHealthCheck
             // instance created and destroyed each time.
             await this.client.GetGrain<IStorageHealthCheckGrain>(Guid.NewGuid()).CheckAsync().ConfigureAwait(true);
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception exception)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
             this.logger.FailedStorageHealthCheck(exception);
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
             return HealthCheckResult.Unhealthy(FailedMessage, exception);
         }
 
