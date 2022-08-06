@@ -8,17 +8,15 @@ using Orleans.Configuration;
 using Orleans.Hosting;
 using Orleans.Runtime;
 using Orleans.Statistics;
-using WebScheduler.Abstractions.Constants;
 using WebScheduler.Server.Options;
 using Serilog;
 using Serilog.Extensions.Hosting;
-using WebScheduler.Grains.HealthChecks;
 using Boxed.AspNetCore;
 using WebScheduler.Server.Interceptors;
-using WebScheduler.Grains.Constants;
 using Serilog.Formatting.Compact;
 using Orleans.Versions.Compatibility;
 using Orleans.Versions.Selector;
+using WebScheduler.Server.HealthChecks;
 
 #pragma warning disable RCS1102 // Make class static.
 public class Program
@@ -114,21 +112,21 @@ public class Program
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-            .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskState, options =>
+            .AddAdoNetGrainStorage(Grains.Constants.GrainStorageProviderName.ScheduledTaskState, options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-            .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadataHistory, options =>
+            .AddAdoNetGrainStorage(Grains.Constants.GrainStorageProviderName.ScheduledTaskMetadataHistory, options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-            .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskTriggerHistory, options =>
+            .AddAdoNetGrainStorage(Grains.Constants.GrainStorageProviderName.ScheduledTaskTriggerHistory, options =>
             {
                 options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                 options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
@@ -140,14 +138,14 @@ public class Program
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                 })
-            .AddSimpleMessageStreamProvider(StreamProviderName.ScheduledTasks)
-            .AddAdoNetGrainStorage(GrainStorageProviderName.PubSubStore, options =>
-                {
-                    options.Invariant = GetStorageOptions(context.Configuration).Invariant;
-                    options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
-                    options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
-                    options.UseJsonFormat = true;
-                })
+            .AddSimpleMessageStreamProvider(Abstractions.Constants.StreamProviderName.ScheduledTasks)
+            .AddAdoNetGrainStorage(Constants.GrainStorageProviderName.PubSubStore, options =>
+            {
+                options.Invariant = GetStorageOptions(context.Configuration).Invariant;
+                options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
+                options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
+                options.UseJsonFormat = true;
+            })
             .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Linux), x => x.UseLinuxEnvironmentStatistics())
             .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), x => x.UsePerfCounterEnvironmentStatistics())
             .UseDashboard(options => options.BasePath = GetOrleansDashboardOptions(context.Configuration).BasePath);

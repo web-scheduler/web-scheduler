@@ -2,7 +2,6 @@ namespace WebScheduler.Server.HealthChecks;
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Orleans;
-using WebScheduler.Abstractions.Grains.HealthChecks;
 
 /// <summary>
 /// Verifies connectivity to a <see cref="ILocalHealthCheckGrain"/> activation. As this grain is a
@@ -28,13 +27,9 @@ public class GrainHealthCheck : IHealthCheck
         {
             await this.client.GetGrain<ILocalHealthCheckGrain>(Guid.Empty).CheckAsync().ConfigureAwait(true);
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception exception)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
             this.logger.FailedLocalHealthCheck(exception);
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
             return HealthCheckResult.Unhealthy(FailedMessage, exception);
         }
 

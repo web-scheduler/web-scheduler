@@ -3,8 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Orleans.Hosting;
 using Orleans.TestingHost;
-using WebScheduler.Abstractions.Constants;
 using Serilog.Extensions.Logging;
+using WebScheduler.Server.Constants;
 
 public class TestSiloConfigurator : ISiloConfigurator
 {
@@ -12,6 +12,6 @@ public class TestSiloConfigurator : ISiloConfigurator
         siloBuilder
             .ConfigureServices(services => services.AddSingleton<ILoggerFactory>(_ => new SerilogLoggerFactory()))
             .AddMemoryGrainStorageAsDefault()
-            .AddMemoryGrainStorage("PubSubStore")
-            .AddSimpleMessageStreamProvider(StreamProviderName.Default);
+            .AddMemoryGrainStorage(GrainStorageProviderName.PubSubStore)
+            .AddSimpleMessageStreamProvider(Constants.StreamProviderName.Default);
 }

@@ -22,6 +22,7 @@
   <ItemGroup Label="Project References">
     <ProjectReference Include="..\..\Source\WebScheduler.Abstractions\WebScheduler.Abstractions.csproj" />
     <ProjectReference Include="..\..\Source\WebScheduler.Grains\WebScheduler.Grains.csproj" />
+    <ProjectReference Include="..\..\Source\WebScheduler.Server\WebScheduler.Server.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-namespace WebScheduler.Abstractions.Grains.HealthChecks;
+namespace WebScheduler.Server.HealthChecks;
 
 using Orleans;
 using Orleans.CodeGeneration;

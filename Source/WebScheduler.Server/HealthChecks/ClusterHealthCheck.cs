@@ -32,13 +32,9 @@ public class ClusterHealthCheck : IHealthCheck
             var count = hosts.Values.Count(x => x.IsUnavailable());
             return count > 0 ? HealthCheckResult.Degraded(count + DegradedMessage) : HealthCheckResult.Healthy();
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception exception)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
             this.logger.FailedClusterStatusHealthCheck(exception);
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
             return HealthCheckResult.Unhealthy(FailedMessage, exception);
         }
     }

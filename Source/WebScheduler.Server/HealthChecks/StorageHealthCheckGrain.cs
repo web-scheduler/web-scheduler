@@ -1,9 +1,8 @@
-namespace WebScheduler.Grains.HealthChecks;
+namespace WebScheduler.Server.HealthChecks;
 
 using Orleans;
 using Orleans.Placement;
 using Orleans.Runtime;
-using WebScheduler.Abstractions.Grains.HealthChecks;
 
 [PreferLocalPlacement]
 public class StorageHealthCheckGrain : Grain<Guid>, IStorageHealthCheckGrain

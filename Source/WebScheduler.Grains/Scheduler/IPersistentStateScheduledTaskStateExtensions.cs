@@ -1,7 +1,10 @@
-﻿namespace WebScheduler.Grains.Scheduler;
+namespace WebScheduler.Grains.Scheduler;
 using Orleans.Runtime;
 using WebScheduler.Abstractions.Grains.Scheduler;
 
+/// <summary>
+/// Extension methods for <see cref="IPersistentState{ScheduledTaskState}"/>.
+/// </summary>
 public static class IPersistentStateScheduledTaskStateExtensions
 {
     /// <summary>

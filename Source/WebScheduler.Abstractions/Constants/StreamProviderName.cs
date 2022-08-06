@@ -6,11 +6,6 @@ namespace WebScheduler.Abstractions.Constants;
 public static class StreamProviderName
 {
     /// <summary>
-    /// The default stream provider name.
-    /// </summary>
-    public const string Default = nameof(Default);
-
-    /// <summary>
     /// The ScheduledTask stream provider name.
     /// </summary>
     public const string ScheduledTasks = nameof(ScheduledTasks);

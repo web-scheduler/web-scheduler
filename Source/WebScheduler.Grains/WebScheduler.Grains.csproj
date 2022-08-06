@@ -2,9 +2,33 @@
 
   <PropertyGroup Label="Build">
     <TargetFramework>net6.0</TargetFramework>
-    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
+  <PropertyGroup Label="Package">
+    <Authors>Elan Hasson</Authors>
+    <Company>Elan Hasson</Company>
+    <Product>Web Scheduler Grains</Product>
+    <Description>The API for the Web Scheduler</Description>
+    <Copyright>Copyright © Elan Hasson. All rights Reserved</Copyright>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- Workaround to build this project: https://github.com/dotnet/templating/issues/1438 -->
+    <GitHub>true</GitHub>
+    <IsTrimmable>false</IsTrimmable>
+    <Sign>false</Sign>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <RepositoryUrl>https://github.com/web-scheduler/web-scheduler</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/web-scheduler/web-scheduler</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/web-scheduler/web-scheduler/releases</PackageReleaseNotes>
 
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <DocumentationFile></DocumentationFile>
+    <PackageTags>orleans;cron;scheduler</PackageTags>
+
+  </PropertyGroup>
   <ItemGroup Label="Package References">
     <PackageReference Include="Cronos" Version="0.7.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
