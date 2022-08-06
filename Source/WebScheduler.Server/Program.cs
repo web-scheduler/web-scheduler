@@ -140,7 +140,7 @@ public class Program
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                 })
-            .AddSimpleMessageStreamProvider(StreamProviderName.PubSubStore)
+            .AddSimpleMessageStreamProvider(Abstractions.Constants.StreamProviderName.ScheduledTasks)
             .AddAdoNetGrainStorage(Constants.GrainStorageProviderName.PubSubStore, options =>
             {
                 options.Invariant = GetStorageOptions(context.Configuration).Invariant;

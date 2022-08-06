@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Orleans;
 using Orleans.Hosting;
 using Orleans.TestingHost;
+using WebScheduler.Abstractions.Constants;
 using WebScheduler.Server.Constants;
 
 public class TestClientBuilderConfigurator : IClientBuilderConfigurator

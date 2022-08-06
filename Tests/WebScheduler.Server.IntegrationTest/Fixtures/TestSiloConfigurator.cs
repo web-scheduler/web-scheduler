@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Orleans.Hosting;
 using Orleans.TestingHost;
 using Serilog.Extensions.Logging;
+using WebScheduler.Abstractions.Constants;
 using WebScheduler.Server.Constants;
 
 public class TestSiloConfigurator : ISiloConfigurator
