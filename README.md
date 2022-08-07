@@ -1,7 +1,5 @@
 # Web Scheduler
-[![WebScheduler.Grains NuGet Package](https://img.shields.io/nuget/v/WebScheduler.Grains.svg?label=WebScheduler.Grains)](https://www.nuget.org/packages/WebScheduler.Grains/) [![WebScheduler.Grains NuGet Package Downloads](https://img.shields.io/nuget/dt/WebScheduler.Grains)](https://www.nuget.org/packages/WebScheduler.Grains)
-
-[![WebScheduler.Abstractions NuGet Package](https://img.shields.io/nuget/v/WebScheduler.Abstractions.svg?label=WebScheduler.Abstractions)](https://www.nuget.org/packages/WebScheduler.Abstractions/) [![WebScheduler.Abstractions NuGet Package Downloads](https://img.shields.io/nuget/dt/WebScheduler.Abstractions)](https://www.nuget.org/packages/WebScheduler.Abstractions) 
+[![WebScheduler.Grains NuGet Package](https://img.shields.io/nuget/v/WebScheduler.Grains.svg?label=WebScheduler.Grains)](https://www.nuget.org/packages/WebScheduler.Grains/)[![WebScheduler.Grains NuGet Package Downloads](https://img.shields.io/nuget/dt/WebScheduler.Grains)](https://www.nuget.org/packages/WebScheduler.Grains) [![WebScheduler.Abstractions NuGet Package](https://img.shields.io/nuget/v/WebScheduler.Abstractions.svg?label=WebScheduler.Abstractions)](https://www.nuget.org/packages/WebScheduler.Abstractions/) [![WebScheduler.Abstractions NuGet Package Downloads](https://img.shields.io/nuget/dt/WebScheduler.Abstractions)](https://www.nuget.org/packages/WebScheduler.Abstractions)
 
 [![GitHub Actions Status](https://github.com/web-scheduler/web-scheduler/workflows/Build/badge.svg?branch=main)](https://github.com/web-scheduler/web-scheduler/actions)
 
