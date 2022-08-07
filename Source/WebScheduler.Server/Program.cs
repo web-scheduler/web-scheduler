@@ -17,6 +17,7 @@ using Serilog.Formatting.Compact;
 using Orleans.Versions.Compatibility;
 using Orleans.Versions.Selector;
 using WebScheduler.Server.HealthChecks;
+using WebScheduler.Grains.Scheduler;
 
 #pragma warning disable RCS1102 // Make class static.
 public class Program
@@ -105,6 +106,7 @@ public class Program
                 EndpointOptions.DEFAULT_GATEWAY_PORT,
                 listenOnAnyHostAddress: !context.HostingEnvironment.IsDevelopment())
             .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(StorageHealthCheckGrain).Assembly).WithReferences())
+            .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(ScheduledTaskGrain).Assembly).WithReferences())
             .AddAdoNetGrainStorageAsDefault(options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
