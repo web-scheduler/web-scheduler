@@ -14,6 +14,13 @@ databases:
   name: web-scheduler-redis
   production: true
   version: "6"
+- cluster_name: web-scheduler-prod-nyc3-ro
+  db_name: orleans
+  db_user: orleans
+  engine: MYSQL
+  name: web-scheduler-prod-nyc3-ro
+  production: true
+  version: "8"
 domains:
 - domain: scheduler.nullreference.io
   type: PRIMARY
@@ -46,7 +53,7 @@ jobs:
   image:
     registry_type: DOCR
     repository: webscheduler-datamigrations
-    tag: 0.1.34
+    tag: 0.1.38
   instance_count: 1
   instance_size_slug: professional-xs
   kind: PRE_DEPLOY
@@ -87,12 +94,11 @@ services:
   health_check:
     http_path: /status/self
     port: 80
-    initial_delay_seconds: 120
   http_port: 8080
   image:
     registry_type: DOCR
     repository: webscheduler-server
-    tag: 0.1.34
+    tag: 0.1.38
   instance_count: 5
   instance_size_slug: professional-xl
   internal_ports:
@@ -148,7 +154,7 @@ services:
   image:
     registry_type: DOCR
     repository: web-scheduler-api
-    tag: 0.1.43
+    tag: 0.1.44
   instance_count: 3
   instance_size_slug: professional-xs
   name: web-scheduler-api
