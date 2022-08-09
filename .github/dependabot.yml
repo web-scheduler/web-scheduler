@@ -7,20 +7,20 @@ updates:
     directory: "/"
     labels:
       - "dependencies"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 30
     schedule:
       interval: "daily"
   - package-ecosystem: "docker"
     directory: "/"
     labels:
       - "dependencies"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 30
     schedule:
       interval: "daily"
   - package-ecosystem: "github-actions"
     directory: "/"
     labels:
       - "dependencies"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 30
     schedule:
       interval: "daily"
