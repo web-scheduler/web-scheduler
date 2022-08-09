@@ -365,6 +365,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG_NAME: "1.0.0" #${GITHUB_REF#refs/tags/}
+      INPUT_PATH: ${{ matrix.artifact.name}}
+      OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ env.TAG_NAME }}-${{ matrix.artifact.arch}}.tar.gz
     steps:
     # - name: "Download Artifact - ${{ matrix.artifact.name}}"
     #   uses: actions/download-artifact@v3
@@ -373,11 +375,8 @@ jobs:
     #     path: ${{ matrix.artifact.name}}/
     - name: Display structure of downloaded files
       run: ls -R
-    - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ matrix.artifact.label}}
+    - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ env.OUTPUT_FILE}}
       shell: bash
-      env:
-        INPUT_PATH: ${{ matrix.artifact.name}}
-        OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ env.TAG_NAME }}-${{ matrix.artifact.arch}}.tar.gz
       run: |
         echo tar -czvf "$INPUT_PATH" "$OUTPUT_FILE"
         echo hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE"
