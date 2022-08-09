@@ -347,7 +347,7 @@ jobs:
         id: generate-matrix
         env:
           CFG: ${{ toJSON(matrix.artifacts) }}
-          run: jq -r -n 'env.CFG | fromjson | @json "::set-output name=result::\(.data)"'
+        run: jq -r -n 'env.CFG | fromjson | @json "::set-output name=result::\(.data)"'
 
   attach_assets_to_release:
     name: Attach assets to Release ${{ matrix.artifact.name}} to Release ${{ TAG_NAME }} as ${{ matrix.artifact.label}}
