@@ -325,7 +325,7 @@ jobs:
   #         ForEach-Object { dotnet nuget push $_ --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}} }
   #       shell: pwsh
 
-
+  
   build_release_matrix:
     runs-on: ubuntu-latest
    #  needs: ["build","bundler-test","docker", "push-nuget", "push-github-packages"]
@@ -345,17 +345,19 @@ jobs:
               outputFile: WebScheduler.Server
     outputs:
       matrix: ${{ steps.generate-matrix.outputs.result }}
+      tag: ${{ steps.set-tag.outputs.tag }}
     steps:
       - name: Generate Matrix
         id: generate-matrix
         env:
           ARTIFACTS: ${{ toJSON(matrix.artifacts) }}
         run: jq -r -n 'env.ARTIFACTS | fromjson | @json "::set-output name=result::\(.data)"'
-      - name: echo
-        run: echo "${{ toJSON(steps.generate-matrix.outputs) }}"
+      - name: Set tag
+        id: set-tag
+        run: echo "::set-output name=tag::1.0.0" #${GITHUB_REF#refs/tags/}
 
   attach_assets_to_release:
-    name: "Upload Release Asset: ${{ matrix.artifact.name}} for tag ${GITHUB_REF#refs/tags/}"
+    name: Upload Release Asset ${{ matrix.artifact.name}} for tag ${{ needs.build_release_matrix.outputs.tag }}
     needs: [build_release_matrix]
     strategy:
       fail-fast: false
@@ -364,9 +366,9 @@ jobs:
     # if: github.event_name == 'release'
     runs-on: ubuntu-latest
     env:
-      TAG_NAME: "1.0.0" #${GITHUB_REF#refs/tags/}
+      TAG_NAME: ${{ needs.build_release_matrix.outputs.tag }}
       INPUT_PATH: ${{ matrix.artifact.name}}
-      OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${GITHUB_REF#refs/tags/}-${{ matrix.artifact.arch}}.tar.gz
+      OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ needs.build_release_matrix.outputs.tag }}-${{ matrix.artifact.arch}}.tar.gz
     steps:
     # - name: "Download Artifact - ${{ matrix.artifact.name}}"
     #   uses: actions/download-artifact@v3
