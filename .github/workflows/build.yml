@@ -371,7 +371,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG_NAME: ${{ needs.build_release_matrix.outputs.tag }}
-      INPUT_PATH: ${{ matrix.artifact.name}}/
+      INPUT_PATH: ${{ matrix.artifact.name}}/*
       OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ needs.build_release_matrix.outputs.tag }}-${{ matrix.artifact.arch}}.tar.gz
     steps:
     - name: "Download Artifact - ${{ matrix.artifact.name}}"
