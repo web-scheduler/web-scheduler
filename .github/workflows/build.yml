@@ -327,6 +327,7 @@ jobs:
 
   
   build_release_matrix:
+    name: Generate Release Assets List
     runs-on: ubuntu-latest
     needs: ["build"] # ["build","bundler-test","docker", "push-nuget", "push-github-packages"]
    # if: github.event_name == 'release'
@@ -380,6 +381,6 @@ jobs:
     - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ env.OUTPUT_FILE}}
       shell: bash
       run: |
-        echo tar -czvf "$INPUT_PATH" "$OUTPUT_FILE"
+        tar -czvf "$INPUT_PATH" "$OUTPUT_FILE"
         echo hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE"
         ls -R
