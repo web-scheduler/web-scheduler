@@ -378,7 +378,7 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: ${{ matrix.artifact.name}}
-        path: ${{ matrix.artifact.name}}/*
+        path: ${{ matrix.artifact.name}}
     - name: Set executable bit for type=executables-only
       if: ${{ matrix.artifact.type == 'executables-only'}}
       shell: bash
@@ -388,6 +388,5 @@ jobs:
       run: |
         tar -czvf "$OUTPUT_FILE" "$INPUT_PATH"
         echo hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE"
-        tar -xvf "$OUTPUT_FILE" ${{ matrix.artifact.name}}-UNPACKED/
     - name: List Files
       run: ls -R
