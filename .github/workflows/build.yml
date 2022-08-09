@@ -329,8 +329,8 @@ jobs:
   build_release_matrix:
     name: Generate Release Assets List
     runs-on: ubuntu-latest
-    needs: ["build"] # ["build","bundler-test","docker", "push-nuget", "push-github-packages"]
-   # if: github.event_name == 'release'
+    needs: ["build","bundler-test","docker", "push-nuget", "push-github-packages"]
+    if: github.event_name == 'release'
     strategy:
       matrix:
         artifacts:
@@ -358,7 +358,7 @@ jobs:
         run: jq -r -n 'env.ARTIFACTS | fromjson | @json "::set-output name=result::\(.data)"'
       - name: Set tag
         id: set-tag
-        run: echo "::set-output name=tag::1.0.0" # ${GITHUB_REF#refs/tags/}
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
 
   attach_assets_to_release:
     name: Upload Release Asset ${{ matrix.artifact.name}} for tag ${{ needs.build_release_matrix.outputs.tag }}
@@ -367,7 +367,7 @@ jobs:
       fail-fast: false
       matrix:
         artifact:  ${{ fromJson(needs.build_release_matrix.outputs.matrix) }}
-   # if: github.event_name == 'release'
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     env:
       TAG_NAME: ${{ needs.build_release_matrix.outputs.tag }}
@@ -383,10 +383,10 @@ jobs:
       if: ${{ matrix.artifact.type == 'executables-only'}}
       shell: bash
       run: chmod +x  ${{ matrix.artifact.name}}/*
-    - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ env.OUTPUT_FILE}}
+    - name: Add Asset ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ env.OUTPUT_FILE}}
       shell: bash
       run: |
         tar -czvf "$OUTPUT_FILE" "$INPUT_PATH"
-        echo hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE"
+        hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE"
     - name: List Files
       run: ls -R
