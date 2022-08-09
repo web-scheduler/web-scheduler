@@ -335,14 +335,14 @@ jobs:
         artifacts:
           - data:
             - name: migrator-linux-x64
-              label: efbundle for migrator-linux-x64
-              outputFile: migrator-linux-x64.1.0.0.tgz
+              arch: linux-x64
+              outputFile: migrator
             - name: migrator-linux-musl-x64
-              label: migrator for linux-musl-x64
-              outputFile: migrator-linux-musl-x64.1.0.0.tgz
+              arch: linux-musl-x64
+              outputFile: migrator
             - name: WebScheduler.Server
-              label: WebScheduler.Server for linux-x64
-              outputFile: WebScheduler.Server.1.0.0.tgz
+              arch: all
+              outputFile: WebScheduler.Server
     outputs:
       matrix: ${{ steps.generate-matrix.outputs.result }}
     steps:
@@ -354,7 +354,6 @@ jobs:
       - name: echo
         run: echo "${{ toJSON(steps.generate-matrix.outputs) }}"
 
-# ${GITHUB_REF#refs/tags/}
   attach_assets_to_release:
     name: Attach assets to Release ${{ matrix.artifact.name}} to Release 1.0.0 as ${{ matrix.artifact.label}}
     needs: [build_release_matrix]
@@ -365,7 +364,7 @@ jobs:
     # if: github.event_name == 'release'
     runs-on: ubuntu-latest
     env:
-      TAG_NAME: "1.0.0"
+      TAG_NAME: "1.0.0" #${GITHUB_REF#refs/tags/}
     steps:
     # - name: "Download Artifact - ${{ matrix.artifact.name}}"
     #   uses: actions/download-artifact@v3
@@ -378,8 +377,8 @@ jobs:
       shell: bash
       env:
         INPUT_PATH: ${{ matrix.artifact.name}}
-        OUTPUT_FILE: ${{ matrix.artifact.outputFile}}
+        OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ env.TAG_NAME }}-${{ matrix.artifact.arch}}.tar.gz
       run: |
         echo tar -czvf "$INPUT_PATH" "$OUTPUT_FILE"
-        echo hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE#${{ matrix.artifact.label}}"
+        echo hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE"
         ls -R
