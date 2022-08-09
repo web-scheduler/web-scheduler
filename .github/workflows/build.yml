@@ -325,40 +325,68 @@ jobs:
           ForEach-Object { dotnet nuget push $_ --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}} }
         shell: pwsh
 
+  
+  build_release_matrix:
+    name: Generate Release Assets List
+    runs-on: ubuntu-latest
+    needs: ["build","bundler-test","docker", "push-nuget", "push-github-packages"]
+    if: github.event_name == 'release'
+    strategy:
+      matrix:
+        artifacts:
+          - data:
+            - name: migrator-linux-x64
+              arch: linux-x64
+              outputFile: migrator
+              type: executables-only
+            - name: migrator-linux-musl-x64
+              arch: linux-musl-x64
+              outputFile: migrator
+              type: executables-only
+            - name: WebScheduler.Server
+              arch: all
+              outputFile: WebScheduler.Server
+              type: folder
+    outputs:
+      matrix: ${{ steps.generate-matrix.outputs.result }}
+      tag: ${{ steps.set-tag.outputs.tag }}
+    steps:
+      - name: Generate Matrix
+        id: generate-matrix
+        env:
+          ARTIFACTS: ${{ toJSON(matrix.artifacts) }}
+        run: jq -r -n 'env.ARTIFACTS | fromjson | @json "::set-output name=result::\(.data)"'
+      - name: Set tag
+        id: set-tag
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+
   attach_assets_to_release:
-    name: "Attach assets to Release"
+    name: Upload Release Asset ${{ matrix.artifact.name}} for tag ${{ needs.build_release_matrix.outputs.tag }}
+    needs: [build_release_matrix]
     strategy:
       fail-fast: false
       matrix:
-        artifact: [
-          {
-            name:"migrator-linux-musl-x64",
-            label:"efbundle for linux-musl-x64"
-          }, 
-          {
-          name:"migrator-linux-musl-x64",
-          label:"migrator for linux-musl-x64"
-          }
-        ]
-    needs: ["build","bundler-test","docker", "push-nuget", "push-github-packages"]
+        artifact:  ${{ fromJson(needs.build_release_matrix.outputs.matrix) }}
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     env:
-      TAG_NAME: "${GITHUB_REF#refs/tags/}"
+      TAG_NAME: ${{ needs.build_release_matrix.outputs.tag }}
+      INPUT_PATH: ${{ matrix.artifact.name}}/*
+      OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ needs.build_release_matrix.outputs.tag }}-${{ matrix.artifact.arch}}.tar.gz
     steps:
     - name: "Download Artifact - ${{ matrix.artifact.name}}"
       uses: actions/download-artifact@v3
       with:
         name: ${{ matrix.artifact.name}}
-        path: ${{ matrix.artifact.name}}/
-    - name: Display structure of downloaded files
-      run: ls -R
-    - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ TAG_NAME }} as ${{ matrix.artifact.label}}
+        path: ${{ matrix.artifact.name}}
+    - name: Set executable bit for type=executables-only
+      if: ${{ matrix.artifact.type == 'executables-only'}}
       shell: bash
-      env:
-        INPUT_PATH: "${{ matrix.artifact.name}}"
-        OUTPUT_FILE: "${{ matrix.artifact.name}}.tgz"
+      run: chmod +x  ${{ matrix.artifact.name}}/*
+    - name: Add Asset ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ env.OUTPUT_FILE}}
+      shell: bash
       run: |
-        tar -czvf "$INPUT_PATH" "$OUTPUT_PATH"
-        hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE#${{ matrix.artifact.label}}"
-        
+        tar -czvf "$OUTPUT_FILE" "$INPUT_PATH"
+        hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE"
+    - name: List Files
+      run: ls -R
