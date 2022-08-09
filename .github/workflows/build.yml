@@ -364,7 +364,7 @@ jobs:
     # if: github.event_name == 'release'
     runs-on: ubuntu-latest
     env:
-      TAG_NAME: "${{ env.TAG_NAME }}" #${GITHUB_REF#refs/tags/}
+      TAG_NAME: "1.0.0" #${GITHUB_REF#refs/tags/}
     steps:
     # - name: "Download Artifact - ${{ matrix.artifact.name}}"
     #   uses: actions/download-artifact@v3
