@@ -380,7 +380,7 @@ jobs:
         name: ${{ matrix.artifact.name}}
         path: ${{ matrix.artifact.name}}/
     - name: Set executable bit for type=executables-only
-      if: ${{ matrix.artifact.type == "executables-only"}}
+      if: ${{ matrix.artifact.type == 'executables-only'}}
       shell: bash
       run: chmod +x  ${{ matrix.artifact.name}}/*
     - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ env.OUTPUT_FILE}}
