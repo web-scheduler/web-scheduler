@@ -368,7 +368,7 @@ jobs:
         path: ${{ matrix.artifact.name}}/
     - name: Display structure of downloaded files
       run: ls -R
-    - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ TAG_NAME }} as ${{ matrix.artifact.label}}
+    - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ matrix.artifact.label}}
       shell: bash
       env:
         INPUT_PATH: "${{ matrix.artifact.name}}"
