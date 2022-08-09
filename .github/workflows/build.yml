@@ -336,10 +336,13 @@ jobs:
           - data:
             - name: migrator-linux-x64
               label: efbundle for migrator-linux-x64
+              outputFile: migrator-linux-x64.1.0.0.tgz
             - name: migrator-linux-musl-x64
               label: migrator for linux-musl-x64
+              outputFile: migrator-linux-musl-x64.1.0.0.tgz
             - name: WebScheduler.Server
               label: WebScheduler.Server for linux-x64
+              outputFile: WebScheduler.Server.1.0.0.tgz
     outputs:
       matrix: ${{ steps.generate-matrix.outputs.result }}
     steps:
@@ -374,9 +377,9 @@ jobs:
     - name: Package and Attach ${{ matrix.artifact.name}} to Release 1.0.0 as ${{ matrix.artifact.label}}
       shell: bash
       env:
-        INPUT_PATH: "${{ matrix.artifact.name}}"
-        OUTPUT_FILE: "${{ matrix.artifact.name}}.tgz"
+        INPUT_PATH: ${{ matrix.artifact.name}}
+        OUTPUT_FILE: ${{ matrix.artifact.outputFile}}
       run: |
-        echo tar -czvf "$INPUT_PATH" "$OUTPUT_PATH"
+        echo tar -czvf "$INPUT_PATH" "$OUTPUT_FILE"
         echo hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE#${{ matrix.artifact.label}}"
         ls -R
