@@ -371,14 +371,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG_NAME: ${{ needs.build_release_matrix.outputs.tag }}
-      INPUT_PATH: ${{ matrix.artifact.name}}
+      INPUT_PATH: ${{ matrix.artifact.name}}/
       OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ needs.build_release_matrix.outputs.tag }}-${{ matrix.artifact.arch}}.tar.gz
     steps:
     - name: "Download Artifact - ${{ matrix.artifact.name}}"
       uses: actions/download-artifact@v3
       with:
         name: ${{ matrix.artifact.name}}
-        path: ${{ matrix.artifact.name}}/
+        path: ${{ matrix.artifact.name}}/*
     - name: Set executable bit for type=executables-only
       if: ${{ matrix.artifact.type == 'executables-only'}}
       shell: bash
@@ -386,8 +386,8 @@ jobs:
     - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ env.OUTPUT_FILE}}
       shell: bash
       run: |
-        tar -czvf "$INPUT_PATH" "$OUTPUT_FILE"
+        tar -czvf "$OUTPUT_FILE" "$INPUT_PATH"
         echo hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE"
-        ls -R
+        tar -xvf "$OUTPUT_FILE" ${{ matrix.artifact.name}}-UNPACKED/
     - name: List Files
       run: ls -R
