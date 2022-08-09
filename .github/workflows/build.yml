@@ -324,3 +324,41 @@ jobs:
           Where-Object { !$_.Name.Contains('preview') } |
           ForEach-Object { dotnet nuget push $_ --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}} }
         shell: pwsh
+
+  attach_assets_to_release:
+    name: "Attach assets to Release"
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact: [
+          {
+            name:"migrator-linux-musl-x64",
+            label:"efbundle for linux-musl-x64"
+          }, 
+          {
+          name:"migrator-linux-musl-x64",
+          label:"migrator for linux-musl-x64"
+          }
+        ]
+    needs: ["build","bundler-test","docker", "push-nuget", "push-github-packages"]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    env:
+      TAG_NAME: "${GITHUB_REF#refs/tags/}"
+    steps:
+    - name: "Download Artifact - ${{ matrix.artifact.name}}"
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ matrix.artifact.name}}
+        path: ${{ matrix.artifact.name}}/
+    - name: Display structure of downloaded files
+      run: ls -R
+    - name: Package and Attach ${{ matrix.artifact.name}} to Release ${{ TAG_NAME }} as ${{ matrix.artifact.label}}
+      shell: bash
+      env:
+        INPUT_PATH: "${{ matrix.artifact.name}}"
+        OUTPUT_FILE: "${{ matrix.artifact.name}}.tgz"
+      run: |
+        tar -czvf "$INPUT_PATH" "$OUTPUT_PATH"
+        hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE#${{ matrix.artifact.label}}"
+        
