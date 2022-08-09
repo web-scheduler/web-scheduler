@@ -373,6 +373,11 @@ jobs:
       TAG_NAME: ${{ needs.build_release_matrix.outputs.tag }}
       OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ needs.build_release_matrix.outputs.tag }}-${{ matrix.artifact.arch}}.tar.gz
     steps:
+    - name: "Checkout"
+      uses: actions/checkout@v3
+      with:
+        lfs: true
+        fetch-depth: 0
     - name: "Download Artifact - ${{ matrix.artifact.name}}"
       uses: actions/download-artifact@v3
       with:
