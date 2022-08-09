@@ -341,7 +341,7 @@ jobs:
             - name: WebScheduler.Server
               label: WebScheduler.Server for linux-x64
     outputs:
-      matrix: ${{ steps.generate-matrix.outputs.matrix }}
+      matrix: ${{ steps.generate-matrix.outputs.result }}
     steps:
       - name: Generate Matrix
         id: generate-matrix
@@ -349,7 +349,7 @@ jobs:
           ARTIFACTS: ${{ toJSON(matrix.artifacts) }}
         run: jq -r -n 'env.ARTIFACTS | fromjson | @json "::set-output name=result::\(.data)"'
       - name: echo
-        run: echo "${{ toJSON(steps.generate-matrix.outputs) }}""
+        run: echo "${{ toJSON(steps.generate-matrix.outputs) }}"
 
 # ${GITHUB_REF#refs/tags/}
   attach_assets_to_release:
