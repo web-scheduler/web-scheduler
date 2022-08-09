@@ -355,7 +355,7 @@ jobs:
         run: echo "${{ toJSON(steps.generate-matrix.outputs) }}"
 
   attach_assets_to_release:
-    name: "Upload Release Asset: ${{ matrix.artifact.name}} as ${{ matrix.artifact.label}}"
+    name: "Upload Release Asset: ${{ matrix.artifact.name}}"
     needs: [build_release_matrix]
     strategy:
       fail-fast: false
