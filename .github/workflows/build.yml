@@ -350,7 +350,7 @@ jobs:
         run: jq -r -n 'env.CFG | fromjson | @json "::set-output name=result::\(.data)"'
 
   attach_assets_to_release:
-    name: Attach assets to Release ${{ matrix.artifact.name}} to Release ${GITHUB_REF#refs/tags/} as ${{ matrix.artifact.label}}
+    name: Attach assets to Release ${{ matrix.artifact.name}} to Release 1.0.0 as ${{ matrix.artifact.label}}
     needs: [build_release_matrix]
     strategy:
       fail-fast: false
@@ -359,7 +359,7 @@ jobs:
     # if: github.event_name == 'release'
     runs-on: ubuntu-latest
     env:
-      TAG_NAME: "${GITHUB_REF#refs/tags/}"
+      TAG_NAME: "1.0.0"
     steps:
     # - name: "Download Artifact - ${{ matrix.artifact.name}}"
     #   uses: actions/download-artifact@v3
@@ -368,7 +368,7 @@ jobs:
     #     path: ${{ matrix.artifact.name}}/
     - name: Display structure of downloaded files
       run: ls -R
-    - name: Package and Attach ${{ matrix.artifact.name}} to Release ${GITHUB_REF#refs/tags/} as ${{ matrix.artifact.label}}
+    - name: Package and Attach ${{ matrix.artifact.name}} to Release 1.0.0 as ${{ matrix.artifact.label}}
       shell: bash
       env:
         INPUT_PATH: "${{ matrix.artifact.name}}"
