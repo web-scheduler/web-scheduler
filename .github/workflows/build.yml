@@ -361,6 +361,8 @@ jobs:
         run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
 
   attach_assets_to_release:
+    permissions:
+      contents: write  # publishing releases
     name: Upload Release Asset ${{ matrix.artifact.name}} for tag ${{ needs.build_release_matrix.outputs.tag }}
     needs: [build_release_matrix]
     strategy:
@@ -389,6 +391,8 @@ jobs:
       run: chmod -R +x ${{ matrix.artifact.name}}/
     - name: Add Asset ${{ matrix.artifact.name}} to Release ${{ env.TAG_NAME }} as ${{ env.OUTPUT_FILE}}
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         cd ${{ matrix.artifact.name}}
         tar -czvf "../$OUTPUT_FILE" .
