@@ -25,305 +25,305 @@ env:
   maxConnections: 255
   "ConnectionStrings__Default": server=127.0.0.1;user id=root;password=Password12!;port=3306;sslmode=Preferred;database=Orleans;
 jobs:
-  build:
-    name: Build-${{matrix.os}}
-    runs-on: ${{matrix.os}}
-    strategy:
-      fail-fast: false
-      matrix:
-        db: [mysql] # we require a MySQL Instance to build the efbundler
-        version: ["8.0.27"]
-        os: [ubuntu-latest] # windows-latest, macOS-latest'
-    steps:
-      - name: Pull ${{matrix.db}}:${{matrix.version}} and setup Docker
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          echo "Pulling ${{matrix.db}}:${{matrix.version}}"
-          docker pull ${{matrix.db}}:${{matrix.version}}
-      - name: Setup Test Database
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        shell: pwsh
-        run: |
-              docker run --name mysql -e MYSQL_ROOT_PASSWORD=Password12! -p 3306:3306 -d '${{ matrix.db }}:${{ matrix.version }}'
-              $waitMinutes = 5
-              $pollingIntervalSeconds = 3
-              $startTime = Get-Date
-              $started = $false
-              while (!($started = docker exec mysql mysqladmin --protocol=tcp -h localhost -P 3306 -u root -pPassword12! status) -and ((Get-Date) - $startTime).TotalMinutes -lt $waitMinutes)
-              {
-                Start-Sleep -Seconds $pollingIntervalSeconds
-              }
-              if (!$started)
-              {
-                throw "$(databaseServerType):$(databaseServerVersion) docker container failed to start in $(waitMinutes) minutes"
-                exit 1
-              }
-      - name: Setup Database MySQL
-        if: ${{matrix.os == 'ubuntu-latest'}}
-        shell: pwsh
-        run: |
-          $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlCurrentSqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans; """
-          $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
-          $mySqlCommand
-          Invoke-Expression $mySqlCommand
-      - name: "Checkout"
-        uses: actions/checkout@v3
-        with:
-          lfs: true
-          fetch-depth: 0
-      - name: "Install .NET Core SDK"
-        uses: actions/setup-dotnet@v2
-      - name: "Dotnet Tool Restore"
-        run: dotnet tool restore
-        shell: pwsh
-      - name: "Dotnet Cake Build"
-        run: dotnet cake --target=Build
-        shell: pwsh
+  # build:
+  #   name: Build-${{matrix.os}}
+  #   runs-on: ${{matrix.os}}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       db: [mysql] # we require a MySQL Instance to build the efbundler
+  #       version: ["8.0.27"]
+  #       os: [ubuntu-latest] # windows-latest, macOS-latest'
+  #   steps:
+  #     - name: Pull ${{matrix.db}}:${{matrix.version}} and setup Docker
+  #       if: ${{ matrix.os == 'ubuntu-latest' }}
+  #       run: |
+  #         echo "Pulling ${{matrix.db}}:${{matrix.version}}"
+  #         docker pull ${{matrix.db}}:${{matrix.version}}
+  #     - name: Setup Test Database
+  #       if: ${{ matrix.os == 'ubuntu-latest' }}
+  #       shell: pwsh
+  #       run: |
+  #             docker run --name mysql -e MYSQL_ROOT_PASSWORD=Password12! -p 3306:3306 -d '${{ matrix.db }}:${{ matrix.version }}'
+  #             $waitMinutes = 5
+  #             $pollingIntervalSeconds = 3
+  #             $startTime = Get-Date
+  #             $started = $false
+  #             while (!($started = docker exec mysql mysqladmin --protocol=tcp -h localhost -P 3306 -u root -pPassword12! status) -and ((Get-Date) - $startTime).TotalMinutes -lt $waitMinutes)
+  #             {
+  #               Start-Sleep -Seconds $pollingIntervalSeconds
+  #             }
+  #             if (!$started)
+  #             {
+  #               throw "$(databaseServerType):$(databaseServerVersion) docker container failed to start in $(waitMinutes) minutes"
+  #               exit 1
+  #             }
+  #     - name: Setup Database MySQL
+  #       if: ${{matrix.os == 'ubuntu-latest'}}
+  #       shell: pwsh
+  #       run: |
+  #         $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlCurrentSqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans; """
+  #         $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
+  #         $mySqlCommand
+  #         Invoke-Expression $mySqlCommand
+  #     - name: "Checkout"
+  #       uses: actions/checkout@v3
+  #       with:
+  #         lfs: true
+  #         fetch-depth: 0
+  #     - name: "Install .NET Core SDK"
+  #       uses: actions/setup-dotnet@v2
+  #     - name: "Dotnet Tool Restore"
+  #       run: dotnet tool restore
+  #       shell: pwsh
+  #     - name: "Dotnet Cake Build"
+  #       run: dotnet cake --target=Build
+  #       shell: pwsh
         
-      - name: Make ./migrator-linux-x64 directory
-        run: mkdir -p ./migrator-linux-x64
-      - name: Build Bundler for linux-x64 on ${{matrix.db}}:${{matrix.version}}
-        run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj -o ./migrator-linux-x64/efbundle
+  #     - name: Make ./migrator-linux-x64 directory
+  #       run: mkdir -p ./migrator-linux-x64
+  #     - name: Build Bundler for linux-x64 on ${{matrix.db}}:${{matrix.version}}
+  #       run: dotnet ef migrations bundle --self-contained -r linux-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj -o ./migrator-linux-x64/efbundle
       
-      - name: Execute migrator-linux-x64 ${{matrix.db}}:${{matrix.version}} for test execution
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: ./migrator-linux-x64/efbundle
-      - name: "Publish Artifact - migrator-linux-x64"
-        uses: actions/upload-artifact@v3
-        with:
-          name: migrator-linux-x64
-          path: "./migrator-linux-x64"
+  #     - name: Execute migrator-linux-x64 ${{matrix.db}}:${{matrix.version}} for test execution
+  #       if: ${{ matrix.os == 'ubuntu-latest' }}
+  #       run: ./migrator-linux-x64/efbundle
+  #     - name: "Publish Artifact - migrator-linux-x64"
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: migrator-linux-x64
+  #         path: "./migrator-linux-x64"
           
-      - name: Make ./migrator-linux-musl-x64 directory
-        run: mkdir -p ./migrator-linux-musl-x64
-      - name: Build Bundler for linux-musl-x64 on ${{matrix.db}}:${{matrix.version}}
-        run: dotnet ef migrations bundle --self-contained -r linux-musl-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj -o ./migrator-linux-musl-x64/efbundle
-      - name: "Publish Artifact - migrator-linux-musl-x64"
-        uses: actions/upload-artifact@v3
-        with:
-          name: migrator-linux-musl-x64
-          path: "./migrator-linux-musl-x64"
+  #     - name: Make ./migrator-linux-musl-x64 directory
+  #       run: mkdir -p ./migrator-linux-musl-x64
+  #     - name: Build Bundler for linux-musl-x64 on ${{matrix.db}}:${{matrix.version}}
+  #       run: dotnet ef migrations bundle --self-contained -r linux-musl-x64 --verbose --configuration Release --project ./Source/WebScheduler.DataMigrations/WebScheduler.DataMigrations.csproj -o ./migrator-linux-musl-x64/efbundle
+  #     - name: "Publish Artifact - migrator-linux-musl-x64"
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: migrator-linux-musl-x64
+  #         path: "./migrator-linux-musl-x64"
   
-      - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
-        run: dotnet cake --target=Test
-        shell: pwsh
-      - name: "Publish Artifact - WebScheduler.Server.IntegrationTest.html"
-        uses: actions/upload-artifact@v3
-        with:
-          name: WebScheduler.Server.IntegrationTest.html
-          path: ./Artifacts/WebScheduler.Server.IntegrationTest.html
-      - name: "Publish Artifact - WebScheduler.Server.IntegrationTest.html"
-        uses: actions/upload-artifact@v3
-        with:
-          name: WebScheduler.Server.IntegrationTest.trx
-          path: ./Artifacts/WebScheduler.Server.IntegrationTest.trx
-      - name: "Dotnet Cake Publish"
-        run: dotnet cake --target=Publish
-        shell: pwsh
-      - name: "Publish Artifact - WebScheduler.Server"
-        uses: actions/upload-artifact@v3
-        with:
-          name: WebScheduler.Server
-          path: "./Artifacts/Publish"
-      - name: "Dotnet Cake Pack"
-        run: dotnet cake --target=Pack
-      - name: "Publish Artifact - NuGets"
-        uses: actions/upload-artifact@v3
-        with:
-          name: NuGets
-          path: "./Artifacts/Pack"
-      - name: Cleanup ./Artifacts
-        run: rm -rf ./Artifacts/Pack ./Artifacts/Publish
-      - name: "Publish Artifacts"
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{matrix.os}}
-          path: "./Artifacts"
-      - name: "List all files"
-        run: ls -R
+  #     - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
+  #       run: dotnet cake --target=Test
+  #       shell: pwsh
+  #     - name: "Publish Artifact - WebScheduler.Server.IntegrationTest.html"
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: WebScheduler.Server.IntegrationTest.html
+  #         path: ./Artifacts/WebScheduler.Server.IntegrationTest.html
+  #     - name: "Publish Artifact - WebScheduler.Server.IntegrationTest.html"
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: WebScheduler.Server.IntegrationTest.trx
+  #         path: ./Artifacts/WebScheduler.Server.IntegrationTest.trx
+  #     - name: "Dotnet Cake Publish"
+  #       run: dotnet cake --target=Publish
+  #       shell: pwsh
+  #     - name: "Publish Artifact - WebScheduler.Server"
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: WebScheduler.Server
+  #         path: "./Artifacts/Publish"
+  #     - name: "Dotnet Cake Pack"
+  #       run: dotnet cake --target=Pack
+  #     - name: "Publish Artifact - NuGets"
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: NuGets
+  #         path: "./Artifacts/Pack"
+  #     - name: Cleanup ./Artifacts
+  #       run: rm -rf ./Artifacts/Pack ./Artifacts/Publish
+  #     - name: "Publish Artifacts"
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: ${{matrix.os}}
+  #         path: "./Artifacts"
+  #     - name: "List all files"
+  #       run: ls -R
 
-  bundler-test:
-    name: Test-${{matrix.os}}-${{matrix.db}}:${{matrix.version}}
-    needs: ["build"]
-    runs-on: ${{matrix.os}}
-    strategy:
-      fail-fast: false
-      matrix:
-        db: [mysql]
-        version: ["5.7.36","5.7.29", "8.0.22", "8.0.19","8.0.27", "5.7.33"]
-        os: [ubuntu-latest] # windows-latest, macOS-latest
-    steps:
-      - name: Pull ${{matrix.db}}:${{matrix.version}} and setup Docker
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          echo "Pulling ${{matrix.db}}:${{matrix.version}}"
-          docker pull ${{matrix.db}}:${{matrix.version}}
-      - name: Setup Test Database
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        shell: pwsh
-        run: |
-              docker run --name mysql -e MYSQL_ROOT_PASSWORD=Password12! -p 3306:3306 -d '${{ matrix.db }}:${{ matrix.version }}'
-              $waitMinutes = 5
-              $pollingIntervalSeconds = 3
-              $startTime = Get-Date
-              $started = $false
-              while (!($started = docker exec mysql mysqladmin --protocol=tcp -h localhost -P 3306 -u root -pPassword12! status) -and ((Get-Date) - $startTime).TotalMinutes -lt $waitMinutes)
-              {
-                Start-Sleep -Seconds $pollingIntervalSeconds
-              }
-              if (!$started)
-              {
-                throw "$(databaseServerType):$(databaseServerVersion) docker container failed to start in $(waitMinutes) minutes"
-                exit 1
-              }
-      - name: Setup Database MySQL - 8.0.27 ubuntu-latest
-        if: ${{ matrix.version == '8.0.27' && matrix.os == 'ubuntu-latest'}}
-        shell: pwsh
-        run: |
-          $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlCurrentSqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans; """
-          $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
-          $mySqlCommand
-          Invoke-Expression $mySqlCommand
-      - name: Setup Database MySQL Legacy - 5.7.36
-        if: ${{ matrix.version == '5.7.36' }}
-        shell: pwsh
-        run: |
-          $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlLegacySqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans;"""
-          $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
-          $mySqlCommand
-          Invoke-Expression $mySqlCommand
-      - name: Setup Database MySQL Legacy - 5.7.29
-        if: ${{ matrix.version == '5.7.29' }}
-        shell: pwsh
-        run: |
-          $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlLegacySqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans;"""
-          $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
-          $mySqlCommand
-          Invoke-Expression $mySqlCommand
-      - name: "Download Artifact - migrator"
-        uses: actions/download-artifact@v3
-        with:
-          name: migrator-linux-x64
-      - name: "List all files"
-        run: ls -R
-      - name: Execute efBundle ${{matrix.db}}:${{matrix.version}}
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: chmod +x ./efbundle && ./efbundle
+  # bundler-test:
+  #   name: Test-${{matrix.os}}-${{matrix.db}}:${{matrix.version}}
+  #   needs: ["build"]
+  #   runs-on: ${{matrix.os}}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       db: [mysql]
+  #       version: ["5.7.36","5.7.29", "8.0.22", "8.0.19","8.0.27", "5.7.33"]
+  #       os: [ubuntu-latest] # windows-latest, macOS-latest
+  #   steps:
+  #     - name: Pull ${{matrix.db}}:${{matrix.version}} and setup Docker
+  #       if: ${{ matrix.os == 'ubuntu-latest' }}
+  #       run: |
+  #         echo "Pulling ${{matrix.db}}:${{matrix.version}}"
+  #         docker pull ${{matrix.db}}:${{matrix.version}}
+  #     - name: Setup Test Database
+  #       if: ${{ matrix.os == 'ubuntu-latest' }}
+  #       shell: pwsh
+  #       run: |
+  #             docker run --name mysql -e MYSQL_ROOT_PASSWORD=Password12! -p 3306:3306 -d '${{ matrix.db }}:${{ matrix.version }}'
+  #             $waitMinutes = 5
+  #             $pollingIntervalSeconds = 3
+  #             $startTime = Get-Date
+  #             $started = $false
+  #             while (!($started = docker exec mysql mysqladmin --protocol=tcp -h localhost -P 3306 -u root -pPassword12! status) -and ((Get-Date) - $startTime).TotalMinutes -lt $waitMinutes)
+  #             {
+  #               Start-Sleep -Seconds $pollingIntervalSeconds
+  #             }
+  #             if (!$started)
+  #             {
+  #               throw "$(databaseServerType):$(databaseServerVersion) docker container failed to start in $(waitMinutes) minutes"
+  #               exit 1
+  #             }
+  #     - name: Setup Database MySQL - 8.0.27 ubuntu-latest
+  #       if: ${{ matrix.version == '8.0.27' && matrix.os == 'ubuntu-latest'}}
+  #       shell: pwsh
+  #       run: |
+  #         $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlCurrentSqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans; """
+  #         $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
+  #         $mySqlCommand
+  #         Invoke-Expression $mySqlCommand
+  #     - name: Setup Database MySQL Legacy - 5.7.36
+  #       if: ${{ matrix.version == '5.7.36' }}
+  #       shell: pwsh
+  #       run: |
+  #         $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlLegacySqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans;"""
+  #         $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
+  #         $mySqlCommand
+  #         Invoke-Expression $mySqlCommand
+  #     - name: Setup Database MySQL Legacy - 5.7.29
+  #       if: ${{ matrix.version == '5.7.29' }}
+  #       shell: pwsh
+  #       run: |
+  #         $mySqlCommand = "mysql --protocol=tcp -h localhost -P 3306 -u root -pPassword12! -e ""SET GLOBAL sql_mode = '${{ env.mysqlLegacySqlMode }}'; SET GLOBAL max_connections = ${{ env.maxConnections}}; CREATE DATABASE Orleans;"""
+  #         $mySqlCommand = 'docker exec mysql ' + $mySqlCommand
+  #         $mySqlCommand
+  #         Invoke-Expression $mySqlCommand
+  #     - name: "Download Artifact - migrator"
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: migrator-linux-x64
+  #     - name: "List all files"
+  #       run: ls -R
+  #     - name: Execute efBundle ${{matrix.db}}:${{matrix.version}}
+  #       if: ${{ matrix.os == 'ubuntu-latest' }}
+  #       run: chmod +x ./efbundle && ./efbundle
 
-  docker:
-    name: Docker-${{matrix.os}}
-    needs: ["build","bundler-test"]
-    env:
-      DOCKER_REGISTRY: registry.digitalocean.com
-      DOCKER_REPOSITORY_NAME: web-scheduler
-    environment: #TODO: Switch this to PR URL
-       name: "DOCR registry.digitalocean.com/web-scheduler"
-       url: https://registry.digitalocean.com/web-scheduler
-    permissions:
-      packages: write
-    runs-on: ${{matrix.os}}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v3
-        with:
-          lfs: true
-          fetch-depth: 0
-      - name: "Install .NET Core SDK"
-        uses: actions/setup-dotnet@v2
-      - name: "Dotnet Tool Restore"
-        run: dotnet tool restore
-        shell: pwsh
-      - name: "Download Artifact - WebScheduler.Server"
-        uses: actions/download-artifact@v3
-        with:
-          name: WebScheduler.Server
-          path: "./WebScheduler.Server"
-      - name: Download Artifact - Migrator
-        uses: actions/download-artifact@v3
-        with:
-          name: migrator-linux-musl-x64 # We're targeting alpine so we require this binary RID
-          path: "./migrator"
-      - name: "Install QEMU"
-        id: qemu
-        uses: docker/setup-qemu-action@v2
-      - name: "Available platforms"
-        run: echo ${{steps.qemu.outputs.platforms}}
-      - name: "Install Docker BuildX"
-        uses: docker/setup-buildx-action@v2
-      - name: "Docker Login"
-        run: echo ${{secrets.DOCR_PASSWORD}} | docker login ${{env.DOCKER_REGISTRY}} --username ${{secrets.DOCR_USER}} --password-stdin
-        shell: pwsh
-      - name: "Dotnet Cake DockerBuild"
-        run: dotnet cake --target=DockerBuild --push=${{github.event_name == 'release'}}
-        shell: pwsh
-      - name: "List all files"
-        run: ls -R
-      - name: Read file contents from DOCKER_TAG
-        id: read_file
-        uses: andstor/file-reader-action@v1
-        with:
-          path: "./DOCKER_TAG"
-      - name: DigitalOcean App Platform deployment
-        if:  github.event_name == 'release'
-        uses: digitalocean/app_action@main
-        with:
-          app_name: web-scheduler
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-          images: '[
-              {
-                "name": "web-scheduler-server",
-                "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/webscheduler-server",
-                "tag": "${{ steps.read_file.outputs.contents }}"
-              },
-              {
-                "name": "web-scheduler-datamigrator-job",
-                "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/webscheduler-datamigrations",
-                "tag": "${{ steps.read_file.outputs.contents }}"
-              }]'
+  # docker:
+  #   name: Docker-${{matrix.os}}
+  #   needs: ["build","bundler-test"]
+  #   env:
+  #     DOCKER_REGISTRY: registry.digitalocean.com
+  #     DOCKER_REPOSITORY_NAME: web-scheduler
+  #   environment: #TODO: Switch this to PR URL
+  #      name: "DOCR registry.digitalocean.com/web-scheduler"
+  #      url: https://registry.digitalocean.com/web-scheduler
+  #   permissions:
+  #     packages: write
+  #   runs-on: ${{matrix.os}}
+  #   strategy:
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #   steps:
+  #     - name: "Checkout"
+  #       uses: actions/checkout@v3
+  #       with:
+  #         lfs: true
+  #         fetch-depth: 0
+  #     - name: "Install .NET Core SDK"
+  #       uses: actions/setup-dotnet@v2
+  #     - name: "Dotnet Tool Restore"
+  #       run: dotnet tool restore
+  #       shell: pwsh
+  #     - name: "Download Artifact - WebScheduler.Server"
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: WebScheduler.Server
+  #         path: "./WebScheduler.Server"
+  #     - name: Download Artifact - Migrator
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: migrator-linux-musl-x64 # We're targeting alpine so we require this binary RID
+  #         path: "./migrator"
+  #     - name: "Install QEMU"
+  #       id: qemu
+  #       uses: docker/setup-qemu-action@v2
+  #     - name: "Available platforms"
+  #       run: echo ${{steps.qemu.outputs.platforms}}
+  #     - name: "Install Docker BuildX"
+  #       uses: docker/setup-buildx-action@v2
+  #     - name: "Docker Login"
+  #       run: echo ${{secrets.DOCR_PASSWORD}} | docker login ${{env.DOCKER_REGISTRY}} --username ${{secrets.DOCR_USER}} --password-stdin
+  #       shell: pwsh
+  #     - name: "Dotnet Cake DockerBuild"
+  #       run: dotnet cake --target=DockerBuild --push=${{github.event_name == 'release'}}
+  #       shell: pwsh
+  #     - name: "List all files"
+  #       run: ls -R
+  #     - name: Read file contents from DOCKER_TAG
+  #       id: read_file
+  #       uses: andstor/file-reader-action@v1
+  #       with:
+  #         path: "./DOCKER_TAG"
+  #     - name: DigitalOcean App Platform deployment
+  #       if:  github.event_name == 'release'
+  #       uses: digitalocean/app_action@main
+  #       with:
+  #         app_name: web-scheduler
+  #         token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+  #         images: '[
+  #             {
+  #               "name": "web-scheduler-server",
+  #               "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/webscheduler-server",
+  #               "tag": "${{ steps.read_file.outputs.contents }}"
+  #             },
+  #             {
+  #               "name": "web-scheduler-datamigrator-job",
+  #               "repository": "${{env.DOCKER_REGISTRY}}/${{env.DOCKER_REPOSITORY_NAME}}/webscheduler-datamigrations",
+  #               "tag": "${{ steps.read_file.outputs.contents }}"
+  #             }]'
 
-  push-github-packages:
-    name: "Push GitHub Packages"
-    needs: ["build","bundler-test","docker"]
-    environment:
-      name: "GitHub Packages"
-      url: https://github.com/web-scheduler/web-scheduler/packages
-    permissions:
-      packages: write
-    runs-on: windows-latest
-    steps:
-      - name: "Download Artifact"
-        uses: actions/download-artifact@v3
-        with:
-          name: NuGets
-      - name: "Dotnet NuGet Add Source"
-        run: dotnet nuget add source https://nuget.pkg.github.com/web-scheduler/index.json --name GitHub --username web-scheduler --password ${{secrets.GITHUB_TOKEN}}
-        shell: pwsh
-      - name: "Dotnet NuGet Push"
-        run: dotnet nuget push .\**\*.nupkg --api-key ${{ github.token }} --skip-duplicate --source GitHub
-        shell: pwsh
+  # push-github-packages:
+  #   name: "Push GitHub Packages"
+  #   needs: ["build","bundler-test","docker"]
+  #   environment:
+  #     name: "GitHub Packages"
+  #     url: https://github.com/web-scheduler/web-scheduler/packages
+  #   permissions:
+  #     packages: write
+  #   runs-on: windows-latest
+  #   steps:
+  #     - name: "Download Artifact"
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: NuGets
+  #     - name: "Dotnet NuGet Add Source"
+  #       run: dotnet nuget add source https://nuget.pkg.github.com/web-scheduler/index.json --name GitHub --username web-scheduler --password ${{secrets.GITHUB_TOKEN}}
+  #       shell: pwsh
+  #     - name: "Dotnet NuGet Push"
+  #       run: dotnet nuget push .\**\*.nupkg --api-key ${{ github.token }} --skip-duplicate --source GitHub
+  #       shell: pwsh
 
-  push-nuget:
-    name: "Push NuGet Packages"
-    needs: ["build","bundler-test","docker"]
-    if: github.event_name == 'release'
-    environment:
-      name: "NuGet"
-      url: https://www.nuget.org/profiles/web-scheduler
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Download Artifact"
-        uses: actions/download-artifact@v3
-        with:
-          name: NuGets
-      - name: "Dotnet NuGet Push"
-        run: |
-          Get-ChildItem -Recurse .\ -Filter *.nupkg |
-          Where-Object { !$_.Name.Contains('preview') } |
-          ForEach-Object { dotnet nuget push $_ --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}} }
-        shell: pwsh
+  # push-nuget:
+  #   name: "Push NuGet Packages"
+  #   needs: ["build","bundler-test","docker"]
+  #   if: github.event_name == 'release'
+  #   environment:
+  #     name: "NuGet"
+  #     url: https://www.nuget.org/profiles/web-scheduler
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: "Download Artifact"
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: NuGets
+  #     - name: "Dotnet NuGet Push"
+  #       run: |
+  #         Get-ChildItem -Recurse .\ -Filter *.nupkg |
+  #         Where-Object { !$_.Name.Contains('preview') } |
+  #         ForEach-Object { dotnet nuget push $_ --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}} }
+  #       shell: pwsh
 
 
   build_release_matrix:
@@ -346,9 +346,10 @@ jobs:
       - name: Generate Matrix
         id: generate-matrix
         env:
-          CFG: ${{ toJSON(matrix.artifacts) }}
-        run: jq -r -n 'env.CFG | fromjson | @json "::set-output name=result::\(.data)"'
+          ARTIFACTS: ${{ toJSON(matrix.artifacts) }}
+        run: jq -r -n 'env.ARTIFACTS | fromjson | @json "::set-output name=result::\(.data)"'
 
+# ${GITHUB_REF#refs/tags/}
   attach_assets_to_release:
     name: Attach assets to Release ${{ matrix.artifact.name}} to Release 1.0.0 as ${{ matrix.artifact.label}}
     needs: [build_release_matrix]
@@ -374,6 +375,6 @@ jobs:
         INPUT_PATH: "${{ matrix.artifact.name}}"
         OUTPUT_FILE: "${{ matrix.artifact.name}}.tgz"
       run: |
-        tar -czvf "$INPUT_PATH" "$OUTPUT_PATH"
+        echo tar -czvf "$INPUT_PATH" "$OUTPUT_PATH"
         echo hub release edit "$TAG_NAME" -m "" -a "$OUTPUT_FILE#${{ matrix.artifact.label}}"
         ls -R
