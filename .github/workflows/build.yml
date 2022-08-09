@@ -355,7 +355,7 @@ jobs:
         run: echo "${{ toJSON(steps.generate-matrix.outputs) }}"
 
   attach_assets_to_release:
-    name: "Upload Release Asset: ${{ matrix.artifact.name}}"
+    name: "Upload Release Asset: ${{ matrix.artifact.name}} for tag ${GITHUB_REF#refs/tags/}"
     needs: [build_release_matrix]
     strategy:
       fail-fast: false
@@ -366,7 +366,7 @@ jobs:
     env:
       TAG_NAME: "1.0.0" #${GITHUB_REF#refs/tags/}
       INPUT_PATH: ${{ matrix.artifact.name}}
-      OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ env.TAG_NAME }}-${{ matrix.artifact.arch}}.tar.gz
+      OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${GITHUB_REF#refs/tags/}-${{ matrix.artifact.arch}}.tar.gz
     steps:
     # - name: "Download Artifact - ${{ matrix.artifact.name}}"
     #   uses: actions/download-artifact@v3
