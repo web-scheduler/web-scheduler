@@ -349,7 +349,7 @@ jobs:
           ARTIFACTS: ${{ toJSON(matrix.artifacts) }}
         run: jq -r -n 'env.ARTIFACTS | fromjson | @json "::set-output name=result::\(.data)"'
       - name: echo
-        run: echo "${{ steps.generate-matrix.outputs.results }}""
+        run: echo "${{ toJSON(steps.generate-matrix.outputs) }}""
 
 # ${GITHUB_REF#refs/tags/}
   attach_assets_to_release:
