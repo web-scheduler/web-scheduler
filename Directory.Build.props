@@ -8,6 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EditorConfig>true</EditorConfig>
+    <AnalysisMode>Recommended</AnalysisMode>
   </PropertyGroup>
 
   <PropertyGroup Label="Versioning">
@@ -23,7 +25,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  
   <Choose>
     <When Condition="'$(CI)' != 'true'">
       <!-- On non-official builds we don't burn in a git sha.  In large part because it
@@ -55,4 +56,5 @@
       </PropertyGroup>
     </Otherwise>
   </Choose>
+
 </Project>

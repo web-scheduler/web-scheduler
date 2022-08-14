@@ -86,6 +86,73 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
     private async ValueTask WriteStateAsync(ScheduledTaskOperationType operationType)
     {
+    /// </summary>
+    /// <param name="shouldThrow"></param>
+    private async Task WriteStateAndThrowSometimes(bool shouldThrow = false)
+    {
+        try
+        {
+            await this.taskState.WriteStateAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            this.logger.ErrorWritingState(ex, this.GetPrimaryKeyString());
+            if (shouldThrow)
+            {
+                throw;
+            }
+
+            // Keep state in memory to allow reminders to continue to fire in the event of transient failures at the storage level
+            // We'll keep populating the history buffer in an attempt to maintain uptime. In the event the silo crashes any unpersisted state will be lost, which isn't ideal, but it's better than not executing the task.
+            // Wait 2 seconds and retry every 30 seconds
+            this.retryTimeHandle = this.RegisterTimer(this.RetryWriteStateAsync, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(30));
+        }
+    }
+
+    /// <summary>
+    /// Writes the grain state to avoid reentrancy in timer callbacks.
+    /// </summary>
+    public async Task InternalWriteState() => await this.taskState.WriteStateAsync().ConfigureAwait(true);
+
+    private async Task RetryWriteStateAsync(object arg)
+    {
+        try
+        {
+            var policyResult = await this.policies.RetryPolicy
+                .ExecuteAndCaptureAsync((_) => this.SelfInvokeAfter<IScheduledTaskGrain>(g => g.InternalWriteState()),
+                context: new Context()
+                        .WithLogger(this.logger)
+                        .WithGrainKey(this.GetPrimaryKeyString()));
+
+            switch (policyResult.Outcome)
+            {
+                case OutcomeType.Successful:
+                    this.retryTimeHandle?.Dispose();
+                    break;
+                case OutcomeType.Failure:
+                    // keep retrying, do nothing
+                    break;
+                default:
+                    // Some other outcome so do nothing to retry
+                    break;
+            }
+        }
+        catch (BrokenCircuitException brokenCircuitException)
+        {
+            this.logger.ErrorWritingStateCircuitBreakerOpen(brokenCircuitException, this.GetPrimaryKeyString());
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Enqueues a <see cref="HistoryState{TStateType}"/> to the buffer and writes the states to storage.
+    /// </summary>
+    /// <param name="operationType"></param>
+    private void PrepareState(ScheduledTaskOperationType operationType)
+    {
         // Clone the current state.
         var currentState = JsonSerializer.Deserialize<ScheduledTaskMetadata>(JsonSerializer.Serialize(this.taskState.State.Task));
 
@@ -192,6 +259,12 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     /// <inheritdoc/>
     public override async Task OnActivateAsync()
     {
+        // Do nothing if tenant is empty.
+        if (this.taskState.State.TenantId == Guid.Empty)
+        {
+            return;
+        }
+
         await this.EnsureHistoryQueueProcessorReminderAsync();
 
         // No task so nothing to do
@@ -254,6 +327,27 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             // nothing to do, no interval;
             return;
         }
+        this.taskState.State.Task.NextRunAt = nextRun;
+
+        if (dueTime.TotalMilliseconds > 0xfffffffe) // Max Timer Interval
+        {
+            dueTime = TimeSpan.FromMilliseconds(0xfffffffe);
+        }
+
+        var secondRun = this.expression?.GetNextOccurrence(nextRun);
+        var interval = TimeSpan.FromMinutes(1);
+        if (secondRun is not null)
+        {
+            interval = secondRun.Value - nextRun;
+            if (interval.TotalMilliseconds > 0xfffffffe) // Max Timer Interval
+            {
+                interval = TimeSpan.FromMilliseconds(0xfffffffe);
+            }
+        }
+        _ = await this.RegisterOrUpdateReminder(ScheduledTaskReminderName, dueTime, interval);
+        this.taskState.State.Task.ModifiedAt = now;
+        await this.taskState.WriteStateAsync();
+    }
 
         if (dueTime.TotalMilliseconds > 0xfffffffe) // Max Timer Interval
         {

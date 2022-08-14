@@ -136,14 +136,6 @@ public class Program
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                 })
-            .AddSimpleMessageStreamProvider(Abstractions.Constants.StreamProviderName.ScheduledTasks)
-            .AddAdoNetGrainStorage(Constants.GrainStorageProviderName.PubSubStore, options =>
-            {
-                options.Invariant = GetStorageOptions(context.Configuration).Invariant;
-                options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
-                options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
-                options.UseJsonFormat = true;
-            })
             .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Linux), x => x.UseLinuxEnvironmentStatistics())
             .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), x => x.UsePerfCounterEnvironmentStatistics())
             .UseDashboard(options => options.BasePath = GetOrleansDashboardOptions(context.Configuration).BasePath);
