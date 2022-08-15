@@ -1,4 +1,4 @@
-namespace WebScheduler.Server.Interceptors;
+namespace TaskScheduler.ServiceHost.Server.Interceptors;
 
 using System.Threading.Tasks;
 using Orleans;
@@ -20,41 +20,55 @@ public class TenantValidationInterceptor : IIncomingGrainCallFilter
 
     public async Task Invoke(IIncomingGrainCallContext context)
     {
-        // Hook calls to any grain other than ICustomFilterGrain implementations.e
-        // This avoids potential infinite recursion when calling OnReceivedCall() below.
-        if (context.Grain is IScheduledTaskGrain &&
-            context.InterfaceMethod.ReflectedType != typeof(ITenantScopedGrain<>) &&
-            context.InterfaceMethod.ReflectedType != typeof(IRemindable)
-            )
+        var tenantId = string.Empty;
+
+        try
         {
-            var filterGrain = this.grainFactory.GetGrain<ITenantScopedGrain<IScheduledTaskGrain>>(context.Grain.GetPrimaryKeyString());
-
-#pragma warning disable CA2208 // Instantiate argument exceptions correctly
-            var tenantId = RequestContext.Get(RequestContextKeys.TenantId) as string ?? throw new ArgumentNullException($"{RequestContextKeys.TenantId} not found in RequestContext");
-#pragma warning restore CA2208 // Instantiate argument exceptions correctly
-
-            var tenantIdAsGuid = Guid.ParseExact(tenantId, "D");
-            var valid = await filterGrain.IsOwnedByAsync(tenantIdAsGuid).ConfigureAwait(true);
-
-            // Only claim a ScheduledTaskId for a Create
-            if (valid is null && context.ImplementationMethod.Name == nameof(IScheduledTaskGrain.CreateAsync))
+            // Hook calls to any grain other than ICustomFilterGrain implementations.e
+            // This avoids potential infinite recursion when calling OnReceivedCall() below.
+            if (context.Grain is IScheduledTaskGrain &&
+                context.InterfaceMethod.ReflectedType != typeof(ITenantScopedGrain<>) &&
+                context.InterfaceMethod.ReflectedType != typeof(IRemindable))
             {
-                await context.Invoke().ConfigureAwait(true);
-                return;
+                tenantId = RequestContext.Get(RequestContextKeys.TenantId) as string ?? throw new ArgumentNullException($"{RequestContextKeys.TenantId} not found in RequestContext");
+
+                var tenantIdAsGuid = Guid.ParseExact(tenantId, "D");
+
+                var filterGrain = this.grainFactory.GetGrain<ITenantScopedGrain<IScheduledTaskGrain>>(context.Grain.GetPrimaryKeyString());
+
+                var valid = await filterGrain.IsOwnedByAsync(tenantIdAsGuid);
+
+                // Only claim a ScheduledTaskId for a Create
+                if (valid is null && context.ImplementationMethod.Name == nameof(IScheduledTaskGrain.CreateAsync))
+                {
+                    await context.Invoke();
+                    return;
+                }
+
+                if (valid == true)
+                {
+                    // Continue invoking the call on the target grain.
+                    await context.Invoke();
+                    return;
+                }
+
+                this.logger.TenantUnauthorized(tenantId, context.Grain.GetPrimaryKeyString());
+                throw new UnauthorizedAccessException();
             }
 
-            if (valid == true)
+            // Continue invoking the call on the target grain.
+            try
             {
-                // Continue invoking the call on the target grain.
-                await context.Invoke().ConfigureAwait(true);
-                return;
+                await context.Invoke();
             }
-
-            this.logger.TenantUnauthorized(tenantId, context.Grain.GetPrimaryKeyString());
-            throw new UnauthorizedAccessException();
+            catch (Exception)
+            {
+                throw;
+            }
         }
-
-        // Continue invoking the call on the target grain.
-        await context.Invoke().ConfigureAwait(true);
+        catch (Exception exception)
+        {
+            this.logger.TenantException(exception, tenantId, context.Grain.GetPrimaryKeyString());
+        }
     }
 }

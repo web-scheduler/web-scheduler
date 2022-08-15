@@ -7,11 +7,7 @@ using Orleans.CodeGeneration;
 /// A local health check grain
 /// </summary>
 [Version(1)]
-public interface ILocalHealthCheckGrain : IGrainWithGuidKey
+public interface ILocalHealthCheckGrain : IGrainWithStringKey
 {
-    /// <summary>
-    ///  checks the health.
-    /// </summary>
-    /// <returns>A value task.</returns>
     ValueTask CheckAsync();
 }

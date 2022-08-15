@@ -10,10 +10,10 @@ using WebScheduler.Abstractions.Grains.History;
 using WebScheduler.Abstractions.Grains.Scheduler;
 
 /// <summary>
-/// Abstract class with grain History implementation for an operation log.
+/// Base class for recording history
 /// </summary>
-/// <typeparam name="TModel">The model type.</typeparam>
-/// <typeparam name="TOperationType">The operation type.</typeparam>
+/// <typeparam name="TModel"></typeparam>
+/// <typeparam name="TOperationType"></typeparam>
 [PreferLocalPlacement]
 public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrain<TModel, TOperationType>
     where TModel : class, IHistoryRecordKeyPrefix, new()
@@ -23,7 +23,7 @@ public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrai
     private readonly IPersistentState<HistoryState<TModel, TOperationType>> historyRecordState;
 
     /// <summary>
-    /// The ctor.
+    /// ctor
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="state"></param>
@@ -56,7 +56,7 @@ public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrai
         try
         {
             this.historyRecordState.State = history;
-            await this.historyRecordState.WriteStateAsync().ConfigureAwait(true);
+            await this.historyRecordState.WriteStateAsync();
 
             return true;
         }

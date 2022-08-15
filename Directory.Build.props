@@ -4,6 +4,7 @@
     <LangVersion>latest</LangVersion>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -15,8 +16,43 @@
   </PropertyGroup>
 
   <ItemGroup Label="Package References">
-    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all" Version="17.3.44" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.3.44" />
     <PackageReference Include="MinVer" PrivateAssets="all" Version="4.1.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeStyle" Version="4.3.0-3.final">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
-
+  
+  <Choose>
+    <When Condition="'$(CI)' != 'true'">
+      <!-- On non-official builds we don't burn in a git sha.  In large part because it
+           hurts our determinism efforts as binaries which should be the same between
+           builds will not (due to developers building against different HEAD
+           values -->
+      <PropertyGroup>
+        <GitHeadSha>&lt;developer build&gt;</GitHeadSha>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(GITHUB_SHA)' != ''">
+      <PropertyGroup>
+        <GitHeadSha>$(GITHUB_SHA)</GitHeadSha>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(GitHeadSha)' == ''">
+      <PropertyGroup>
+        <GitHeadSha>Not found</GitHeadSha>
+        <DotGitDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory).git'))</DotGitDir>
+        <HeadFileContent Condition="Exists('$(DotGitDir)/HEAD')">$([System.IO.File]::ReadAllText('$(DotGitDir)/HEAD').Trim())</HeadFileContent>
+        <RefPath Condition="$(HeadFileContent.StartsWith('ref: '))">$(DotGitDir)/$(HeadFileContent.Substring(5))</RefPath>
+        <GitHeadSha Condition="'$(RefPath)' != '' AND Exists('$(RefPath)')">$([System.IO.File]::ReadAllText('$(RefPath)').Trim())</GitHeadSha>
+        <GitHeadSha Condition="'$(HeadFileContent)' != '' AND '$(RefPath)' == ''">$(HeadFileContent)</GitHeadSha>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <GitHeadSha>Not found</GitHeadSha>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
 </Project>

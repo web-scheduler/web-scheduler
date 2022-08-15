@@ -12,16 +12,13 @@ using WebScheduler.Server.Options;
 using Serilog;
 using Serilog.Extensions.Hosting;
 using Boxed.AspNetCore;
-using WebScheduler.Server.Interceptors;
 using Serilog.Formatting.Compact;
 using Orleans.Versions.Compatibility;
 using Orleans.Versions.Selector;
 using WebScheduler.Server.HealthChecks;
-using WebScheduler.Grains.Scheduler;
+using TaskScheduler.ServiceHost.Server.Interceptors;
 
-#pragma warning disable RCS1102 // Make class static.
 public class Program
-#pragma warning restore RCS1102 // Make class static.
 {
     public static async Task<int> Main(string[] args)
     {
@@ -33,7 +30,7 @@ public class Program
             host = CreateHostBuilder(args).Build();
 
             host.LogApplicationStarted();
-            await host.RunAsync().ConfigureAwait(true);
+            await host.RunAsync();
             host!.LogApplicationStopped();
 
             return 0;
@@ -81,7 +78,6 @@ public class Program
         Microsoft.Extensions.Hosting.HostBuilderContext context,
         ISiloBuilder siloBuilder) =>
         siloBuilder
-            .AddIncomingGrainCallFilter<TenantValidationInterceptor>()
             .ConfigureServices(
                 (context, services) =>
                 {
@@ -105,8 +101,9 @@ public class Program
                 EndpointOptions.DEFAULT_SILO_PORT,
                 EndpointOptions.DEFAULT_GATEWAY_PORT,
                 listenOnAnyHostAddress: !context.HostingEnvironment.IsDevelopment())
-            .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(StorageHealthCheckGrain).Assembly).WithReferences())
-            .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(ScheduledTaskGrain).Assembly).WithReferences())
+                    .ConfigureApplicationParts(parts =>
+                parts.AddApplicationPart(typeof(LocalHealthCheckGrain).Assembly).WithReferences()
+                .AddFromApplicationBaseDirectory().WithReferences())
             .AddAdoNetGrainStorageAsDefault(options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
@@ -150,6 +147,7 @@ public class Program
             })
             .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Linux), x => x.UseLinuxEnvironmentStatistics())
             .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), x => x.UsePerfCounterEnvironmentStatistics())
+            .AddIncomingGrainCallFilter<TenantValidationInterceptor>()
             .UseDashboard(options => options.BasePath = GetOrleansDashboardOptions(context.Configuration).BasePath);
 
     private static void ConfigureWebHostBuilder(IWebHostBuilder webHostBuilder) =>

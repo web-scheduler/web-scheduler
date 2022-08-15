@@ -5,16 +5,16 @@ using Orleans.Placement;
 using Orleans.Runtime;
 
 [PreferLocalPlacement]
-public class StorageHealthCheckGrain : Grain<Guid>, IStorageHealthCheckGrain
+public class StorageHealthCheckGrain : Grain<string>, IStorageHealthCheckGrain
 {
     public async ValueTask CheckAsync()
     {
         try
         {
-            this.State = Guid.NewGuid();
-            await this.WriteStateAsync().ConfigureAwait(true);
-            await this.ReadStateAsync().ConfigureAwait(true);
-            await this.ClearStateAsync().ConfigureAwait(true);
+            this.State = Guid.NewGuid().ToString();
+            await this.WriteStateAsync();
+            await this.ReadStateAsync();
+            await this.ClearStateAsync(); // This does not actually remove the state from ADO Grain State Provider.
         }
         finally
         {

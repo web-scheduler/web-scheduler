@@ -1,16 +1,18 @@
 namespace WebScheduler.Grains.Scheduler;
 
-using WebScheduler.Grains.History;
 using Microsoft.Extensions.Logging;
 using Orleans.Runtime;
 using WebScheduler.Abstractions.Grains.History;
 using WebScheduler.Abstractions.Grains.Scheduler;
 using WebScheduler.Grains.Constants;
+using Orleans.Placement;
+using WebScheduler.Grains.History;
 
 /// <summary>
 /// Records <see cref="ScheduledTaskTriggerHistoryGrain"/> history.
 /// </summary>
-public class ScheduledTaskTriggerHistoryGrain : HistoryGrain<ScheduledTaskTriggerHistory, TaskTriggerType>
+[PreferLocalPlacement]
+public class ScheduledTaskTriggerHistoryGrain : HistoryGrain<ScheduledTaskTriggerHistory, TaskTriggerType>, IScheduledTaskTriggerHistoryGrain
 {
     /// <summary>
     /// The ctor.
@@ -18,7 +20,7 @@ public class ScheduledTaskTriggerHistoryGrain : HistoryGrain<ScheduledTaskTrigge
     /// <param name="logger">logger</param>
     /// <param name="state">state</param>
     public ScheduledTaskTriggerHistoryGrain(
-        ILogger<ScheduledTaskHistoryGrain> logger,
+        ILogger<ScheduledTaskTriggerHistoryGrain> logger,
         [PersistentState(StateName.ScheduledTaskTriggerHistory, GrainStorageProviderName.ScheduledTaskTriggerHistory)]
         IPersistentState<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>> state) : base(logger, state)
     { }
