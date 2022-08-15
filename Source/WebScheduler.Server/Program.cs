@@ -146,6 +146,7 @@ public class Program
             })
             .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Linux), x => x.UseLinuxEnvironmentStatistics())
             .UseIf(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), x => x.UsePerfCounterEnvironmentStatistics())
+            .AddIncomingGrainCallFilter<TenantValidationInterceptor>()
             .UseDashboard(options => options.BasePath = GetOrleansDashboardOptions(context.Configuration).BasePath);
 
     private static void ConfigureWebHostBuilder(IWebHostBuilder webHostBuilder) =>
