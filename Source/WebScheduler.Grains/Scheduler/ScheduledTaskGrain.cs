@@ -247,6 +247,10 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 return false;
             }
 
+            if (this.retryTimeHandle is not null)
+            {
+                return false;
+            }
             // Keep state in memory to allow reminders to continue to fire in the event of transient failures at the storage level
             // We'll keep populating the history buffer in an attempt to maintain uptime. In the event the silo crashes any unpersisted state will be lost, which isn't ideal, but it's better than not executing the task.
             // Wait 2 seconds and retry every 30 seconds
@@ -265,7 +269,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         try
         {
             var policyResult = await this.policies.RetryPolicy
-                .ExecuteAndCaptureAsync((_) => this.SelfInvokeAfter<IScheduledTaskGrain>(g => g.InternalWriteState()),
+                .ExecuteAndCaptureAsync((_) => this.SelfInvokeAfter<IScheduledTaskGrain>(async g => await g.InternalWriteState()),
                 context: new Context()
                         .WithLogger(this.logger)
                         .WithGrainKey(this.GetPrimaryKeyString()));
@@ -287,9 +291,13 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         {
             this.logger.ErrorWritingStateCircuitBreakerOpen(brokenCircuitException, this.GetPrimaryKeyString());
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            throw;
+            this.logger.ErrorWritingStateCircuitBreakerOpen(ex, this.GetPrimaryKeyString());
+        }
+        finally
+        {
+            this?.retryTimeHandle?.Dispose();
         }
     }
 
