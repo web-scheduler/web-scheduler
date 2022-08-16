@@ -2,7 +2,7 @@ namespace WebScheduler.Server;
 
 using System.Reflection;
 
-public record class AssemblyInformation(string Product, string Description, string Version, string InformationalVersion)
+public record AssemblyInformation(string Product, string Description, string Version, string InformationalVersion)
 {
     public static readonly AssemblyInformation Current = new(typeof(AssemblyInformation).Assembly);
 
