@@ -15,6 +15,9 @@ using System.Text.Json;
 using Orleans.Concurrency;
 using WebScheduler.Grains.Constants;
 using System.Diagnostics;
+using System;
+using Polly;
+using Polly.CircuitBreaker;
 
 /// <summary>
 /// A scheduled task grain
@@ -22,97 +25,240 @@ using System.Diagnostics;
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>, IIncomingGrainCallFilter
 {
     private readonly ILogger<ScheduledTaskGrain> logger;
+    private readonly ICommonGrainStoragePolicy policies;
     private readonly IPersistentState<ScheduledTaskState> taskState;
     private readonly IClockService clockService;
     private readonly IHttpClientFactory httpClientFactory;
     private readonly IClusterClient clusterClient;
     private const string ScheduledTaskReminderName = "ScheduledTaskExecutor";
-    private const string HistoryReminderName = "HistoryQueueProcessor";
     private CronExpression? expression;
-    private IGrainReminder? historyReminder;
+    private readonly Stopwatch stopwatch = new();
+    private IDisposable? retryTimeHandle;
+    private IGrainReminder? scheduledTaskReminder;
+    private static readonly TimeSpan OneMinute = TimeSpan.FromMinutes(1);
 
     /// <summary>
     /// The constructor.
     /// </summary>
     /// <param name="logger">logger</param>
+    /// <param name="policies"></param>
     /// <param name="clockService">clock</param>
     /// <param name="httpClientFactory">httpClientFactory</param>
     /// <param name="clusterClient">clusterClient</param>
     /// <param name="task">state</param>
     public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger,
+        ICommonGrainStoragePolicy policies,
         IClockService clockService, IHttpClientFactory httpClientFactory, IClusterClient clusterClient,
         [PersistentState(StateName.ScheduledTaskState, GrainStorageProviderName.ScheduledTaskState)]
         IPersistentState<ScheduledTaskState> task)
     {
         this.logger = logger;
+        this.policies = policies;
         this.taskState = task;
         this.clockService = clockService;
         this.httpClientFactory = httpClientFactory;
         this.clusterClient = clusterClient;
     }
 
+    private async ValueTask TryToInitializeReminder()
+    {
+        if (this.scheduledTaskReminder is not null)
+        {
+            return;
+        }
+
+        this.scheduledTaskReminder = await this.GetReminder(ScheduledTaskReminderName);
+    }
+
     /// <inheritdoc/>
     public async ValueTask<ScheduledTaskMetadata> CreateAsync(ScheduledTaskMetadata scheduledTaskMetadata)
+    {
+        this.EnsureInitialTaskState();
+
+        this.InitializeTask(scheduledTaskMetadata);
+
+        this.SetNextRunAt(this.taskState.State.Task.CreatedAt);
+
+        this.PrepareState(ScheduledTaskOperationType.Create, this.taskState.State.Task.CreatedAt);
+
+        if (!await this.WriteState())
+        {
+            // Reset in memory state by deactivating the grain.
+            this.DeactivateOnIdle();
+            throw new ErrorCreatingScheduledTaskException();
+        }
+
+        if (!await this.EnsureReminder())
+        {
+            // restore in-memory state to before the changes
+            this.DeactivateOnIdle();
+            throw new ErrorCreatingScheduledTaskException();
+        }
+        return this.taskState.State.Task;
+    }
+
+    private async Task<bool> EnsureReminder()
+    {
+        await this.TryToInitializeReminder();
+
+        if (!this.HasEmptyHistoryBuffers() || this.IsTaskEnabled())
+        {
+            // We still have work to do in the future, so leave reminder ticking.
+            if (this.scheduledTaskReminder is not null)
+            {
+                return true;
+            }
+
+            try
+            {
+                this.scheduledTaskReminder = await this.RegisterOrUpdateReminder(ScheduledTaskReminderName, OneMinute, OneMinute);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                this.logger.ErrorRegisteringReminder(ex);
+                return false;
+            }
+        }
+
+        // If the reminder doesn't exist, nothing to do here.
+        if (this.scheduledTaskReminder is null)
+        {
+            return true;
+        }
+
+        // unregister the reminder because it exists.
+        try
+        {
+            await this.UnregisterReminder(this.scheduledTaskReminder);
+            this.scheduledTaskReminder = null;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            this.logger.ErrorUnRegisteringReminder(ex);
+            // We return success if we can't unregister the reminder, we will unregister during the next reminder tick.
+            return true;
+        }
+    }
+
+    private void EnsureInitialTaskState()
     {
         if (this.taskState.State.TenantId == Guid.Empty)
         {
             throw new UnauthorizedAccessException("TenantId is empty.");
         }
 
-        if (this.taskState.Exists() && !this.taskState.State.IsDeleted)
+        if (this.TaskExists())
         {
             this.logger.ScheduledTaskAlreadyExists(this.GetPrimaryKeyString());
             throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKeyString());
         }
+    }
 
+    /// <inheritdoc/>
+    public async ValueTask<ScheduledTaskMetadata> UpdateAsync(ScheduledTaskMetadata scheduledTaskMetadata)
+    {
+        this.EnsureTaskExists();
+
+        var oldTaskState = this.CloneTaskState<ErrorUpdatingScheduledTaskException>();
+
+        this.taskState.State.Task.Description = scheduledTaskMetadata.Description;
+        this.taskState.State.Task.HttpTriggerProperties = scheduledTaskMetadata.HttpTriggerProperties;
+        this.taskState.State.Task.Name = scheduledTaskMetadata.Name;
+        this.taskState.State.Task.IsEnabled = scheduledTaskMetadata.IsEnabled;
+        this.taskState.State.Task.TriggerType = scheduledTaskMetadata.TriggerType;
+
+        // if the cron expression changed, we reset NextRunAt to be based off of the modified date
+        if (this.taskState.State.Task.CronExpression != scheduledTaskMetadata.CronExpression)
+        {
+            this.SetNextRunAt(this.taskState.State.Task.ModifiedAt);
+            this.taskState.State.Task.CronExpression = scheduledTaskMetadata.CronExpression;
+        }
+
+        this.PrepareState(ScheduledTaskOperationType.Update);
+
+        if (!await this.WriteState())
+        {
+            // restore in-memory state to before the changes
+            this.taskState.State.Task = oldTaskState;
+            throw new ErrorUpdatingScheduledTaskException();
+        }
+
+        if (!await this.EnsureReminder())
+        {
+            // restore in-memory state to before the changes
+            this.taskState.State.Task = oldTaskState;
+            throw new ErrorUpdatingScheduledTaskException();
+        }
+
+        return this.taskState.State.Task;
+    }
+
+    private ScheduledTaskMetadata CloneTaskState<TException>()
+        where TException : Exception, new()
+    {
+        var oldTaskState = JsonSerializer.Deserialize<ScheduledTaskMetadata>(JsonSerializer.Serialize(this.taskState.State.Task));
+        if (oldTaskState is null)
+        {
+            this.logger.ErrorCloningTaskState();
+            throw new TException();
+        }
+
+        return oldTaskState;
+    }
+
+    private void EnsureTaskExists()
+    {
+        if (!this.TaskExists())
+        {
+            this.logger.ScheduledTaskNotFound(this.GetPrimaryKeyString());
+            throw new ScheduledTaskNotFoundException(this.GetPrimaryKeyString());
+        }
+    }
+
+    private bool TaskExists() => this.taskState.RecordExists && this.taskState.State.TenantId != Guid.Empty && !this.IsTaskDeleted();
+
+    private bool IsTaskDeleted() => this.taskState.State.IsDeleted;
+    private bool IsTaskEnabled() => this.taskState.State.Task.IsEnabled;
+    private bool HasNextRunAt() => this.taskState.State.Task.NextRunAt.HasValue;
+
+    private void InitializeTask(ScheduledTaskMetadata scheduledTaskMetadata)
+    {
         // Explictly set this incase this task was previously deleted and the id is being re-used.
         this.taskState.State.IsDeleted = false;
         this.taskState.State.Task = scheduledTaskMetadata;
 
-        if (this.taskState.State.Task.CreatedAt == DateTime.MinValue)
-        {
-            this.taskState.State.Task.CreatedAt = this.clockService.UtcNow;
-        }
-
-        this.taskState.State.Task.ModifiedAt = this.taskState.State.Task.CreatedAt;
-
-        this.BuildExpressionAndSetNextRunAt();
-
-        await this.SetupReminderAsync();
-
-        await this.WriteStateAsync(ScheduledTaskOperationType.Create);
-        return this.taskState.State.Task;
+        this.taskState.State.Task.CreatedAt = this.clockService.UtcNow;
     }
 
-    private async ValueTask WriteStateAsync(ScheduledTaskOperationType operationType)
-    {
-    /// </summary>
-    /// <param name="shouldThrow"></param>
-    private async Task WriteStateAndThrowSometimes(bool shouldThrow = false)
+    private async Task<bool> WriteState(bool shouldRetry = false)
     {
         try
         {
-            await this.taskState.WriteStateAsync().ConfigureAwait(true);
+            await this.taskState.WriteStateAsync();
+            return true;
         }
         catch (Exception ex)
         {
             this.logger.ErrorWritingState(ex, this.GetPrimaryKeyString());
-            if (shouldThrow)
+            if (!shouldRetry)
             {
-                throw;
+                return false;
             }
 
             // Keep state in memory to allow reminders to continue to fire in the event of transient failures at the storage level
             // We'll keep populating the history buffer in an attempt to maintain uptime. In the event the silo crashes any unpersisted state will be lost, which isn't ideal, but it's better than not executing the task.
             // Wait 2 seconds and retry every 30 seconds
             this.retryTimeHandle = this.RegisterTimer(this.RetryWriteStateAsync, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(30));
+            return false;
         }
     }
 
     /// <summary>
     /// Writes the grain state to avoid reentrancy in timer callbacks.
     /// </summary>
-    public async Task InternalWriteState() => await this.taskState.WriteStateAsync().ConfigureAwait(true);
+    public async Task InternalWriteState() => await this.taskState.WriteStateAsync();
 
     private async Task RetryWriteStateAsync(object arg)
     {
@@ -147,20 +293,25 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         }
     }
 
+    private void PrepareState(ScheduledTaskOperationType operationType) => this.PrepareState(operationType, this.clockService.UtcNow);
+
     /// <summary>
-    /// Enqueues a <see cref="HistoryState{TStateType}"/> to the buffer and writes the states to storage.
+    /// Enqueues a <see cref="HistoryState{ScheduledTaskMetadata, ScheduledTaskOperationType}"/> to the buffer.
     /// </summary>
     /// <param name="operationType"></param>
-    private void PrepareState(ScheduledTaskOperationType operationType)
+    /// <param name="modifiedAt"></param>
+    private void PrepareState(ScheduledTaskOperationType operationType, DateTime modifiedAt)
     {
-        // Clone the current state.
-        var currentState = JsonSerializer.Deserialize<ScheduledTaskMetadata>(JsonSerializer.Serialize(this.taskState.State.Task));
+        this.taskState.State.Task.ModifiedAt = modifiedAt;
 
-        ArgumentNullException.ThrowIfNull(currentState);
+        // Clone the current state.
+        var currentTaskState = JsonSerializer.Deserialize<ScheduledTaskMetadata>(JsonSerializer.Serialize(this.taskState.State.Task));
+
+        ArgumentNullException.ThrowIfNull(currentTaskState);
 
         this.taskState.State.HistoryBuffer.Add(new HistoryState<ScheduledTaskMetadata, ScheduledTaskOperationType>()
         {
-            State = currentState,
+            State = currentTaskState,
             RecordedAt = this.taskState.State.Task.ModifiedAt,
             Operation = operationType
         });
@@ -170,70 +321,27 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         {
             this.taskState.State.Task = new();
         }
-
-        await this.taskState.WriteStateAsync();
-
-        this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 
-    /// <inheritdoc/>
-    public async ValueTask<ScheduledTaskMetadata> UpdateAsync(ScheduledTaskMetadata scheduledTaskMetadata)
+    private void SetNextRunAt(DateTime fromWhen)
     {
-        if (!this.taskState.Exists())
-        {
-            this.logger.ScheduledTaskAlreadyExists(this.GetPrimaryKeyString());
-            throw new ScheduledTaskNotFoundException(this.GetPrimaryKeyString());
-        }
-
-        this.taskState.State.Task.CronExpression = scheduledTaskMetadata.CronExpression;
-        this.taskState.State.Task.Description = scheduledTaskMetadata.Description;
-        this.taskState.State.Task.HttpTriggerProperties = scheduledTaskMetadata.HttpTriggerProperties;
-        this.taskState.State.Task.Name = scheduledTaskMetadata.Name;
-        this.taskState.State.Task.IsEnabled = scheduledTaskMetadata.IsEnabled;
-        this.taskState.State.Task.TriggerType = scheduledTaskMetadata.TriggerType;
-        this.taskState.State.Task.ModifiedAt = this.clockService.UtcNow;
-
-        this.BuildExpressionAndSetNextRunAt(resetNextRunAt: true);
-
-        if (this.ShouldDisableReminder())
-        {
-            await this.DisableReminderAsync(writeState: false);
-        }
-        else
-        {
-            await this.SetupReminderAsync();
-        }
-
-        await this.WriteStateAsync(ScheduledTaskOperationType.Update);
-        return this.taskState.State.Task;
-    }
-    private bool ShouldDisableReminder() => this.taskState.State.IsDeleted || (this.taskState.Exists() && !this.taskState.State.Task.IsEnabled);
-    private void BuildExpressionAndSetNextRunAt(bool resetNextRunAt = false)
-    {
-        // We should always have a valid CronExpression, which is why we always try to evaluate it on start.
+        // We should always have a valid CronExpression.
         this.expression = CronExpression.Parse(this.taskState.State.Task.CronExpression, CronFormat.IncludeSeconds);
 
-        if (!this.taskState.State.Task.IsEnabled)
+        if (!this.IsTaskEnabled())
         {
             this.taskState.State.Task.NextRunAt = null;
             return;
         }
 
-        if (this.taskState.State.Task.NextRunAt is null || resetNextRunAt)
-        {
-            this.taskState.State.Task.NextRunAt = this.expression.GetNextOccurrence(this.taskState.State.Task.ModifiedAt, true);
-        }
+        this.taskState.State.Task.NextRunAt = this.expression.GetNextOccurrence(fromWhen, true);
     }
 
     /// <inheritdoc/>
     [ReadOnly]
     public ValueTask<ScheduledTaskMetadata> GetAsync()
     {
-        if (!this.taskState.Exists())
-        {
-            this.logger.ScheduledTaskDoesNotExists(this.GetPrimaryKeyString());
-            throw new ScheduledTaskNotFoundException(this.GetPrimaryKeyString());
-        }
+        this.EnsureTaskExists();
 
         return new ValueTask<ScheduledTaskMetadata>(this.taskState.State.Task);
     }
@@ -241,229 +349,90 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     /// <inheritdoc/>
     public async ValueTask DeleteAsync()
     {
-        if (!this.taskState.Exists())
-        {
-            this.logger.ScheduledTaskDoesNotExists(this.GetPrimaryKeyString());
-            throw new ScheduledTaskNotFoundException(this.GetPrimaryKeyString());
-        }
+        this.EnsureTaskExists();
+        var oldTaskState = this.CloneTaskState<ErrorDeletingScheduledTaskException>();
 
         this.taskState.State.IsDeleted = true;
-        await this.DisableReminderAsync(writeState: false);
 
         this.taskState.State.Task.DeletedAt = this.clockService.UtcNow;
-        this.taskState.State.Task.ModifiedAt = this.taskState.State.Task.DeletedAt.Value;
 
-        await this.WriteStateAsync(ScheduledTaskOperationType.Delete);
+        this.PrepareState(ScheduledTaskOperationType.Delete, this.taskState.State.Task.DeletedAt.Value);
+
+        if (!await this.WriteState())
+        {
+            // restore in-memory state to before the changes
+            this.taskState.State.Task = oldTaskState;
+            throw new ErrorDeletingScheduledTaskException();
+        }
+
+        if (!await this.EnsureReminder())
+        {
+            // restore in-memory state to before the changes
+            this.taskState.State.Task = oldTaskState;
+            throw new ErrorDeletingScheduledTaskException();
+        }
     }
 
     /// <inheritdoc/>
     public override async Task OnActivateAsync()
     {
-        // Do nothing if tenant is empty.
-        if (this.taskState.State.TenantId == Guid.Empty)
+        // Do nothing if the history buffers are empty and the task is disabled
+        if (this.HasEmptyHistoryBuffers() && !this.IsTaskEnabled())
         {
             return;
         }
 
-        await this.EnsureHistoryQueueProcessorReminderAsync();
-
-        // No task so nothing to do
-        if (!this.taskState.Exists())
-        {
-            return;
-        }
-
-        if (this.taskState.Exists() && !this.taskState.State.IsDeleted)
-        {
-            this.BuildExpressionAndSetNextRunAt();
-        }
-
-        await this.SetupReminderAsync();
+        await this.TryToInitializeReminder();
 
         await base.OnActivateAsync();
-    }
-
-    private async ValueTask EnsureHistoryQueueProcessorReminderAsync()
-    {
-        if (this.AreHistoryBuffersEmpty())
-        {
-            return;
-        }
-
-        this.historyReminder = await this.GetReminder(HistoryReminderName) ??
-            await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
-    }
-
-    private async ValueTask SetupReminderAsync()
-    {
-        if (!this.taskState.Exists())
-        { // nothing to do
-            return;
-        }
-
-        if (this.ShouldDisableReminder())
-        {
-            await this.DisableReminderAsync();
-        }
-
-        var nextRun = this.taskState.State.Task.NextRunAt ?? this.taskState.State.Task.CreatedAt;
-        if (nextRun == DateTime.MinValue)
-        {
-            await this.DisableReminderAsync();
-            return;
-        }
-        var now = this.clockService.UtcNow;
-        var dueTime = nextRun - now;
-
-        // cover the scenario when a timer was missed. It'll be negative here.
-        if (dueTime.TotalMilliseconds < 0)
-        {
-            return;
-        }
-        this.taskState.State.Task.NextRunAt = nextRun;
-
-        if (dueTime == TimeSpan.Zero)
-        {
-            // nothing to do, no interval;
-            return;
-        }
-        this.taskState.State.Task.NextRunAt = nextRun;
-
-        if (dueTime.TotalMilliseconds > 0xfffffffe) // Max Timer Interval
-        {
-            dueTime = TimeSpan.FromMilliseconds(0xfffffffe);
-        }
-
-        var secondRun = this.expression?.GetNextOccurrence(nextRun);
-        var interval = TimeSpan.FromMinutes(1);
-        if (secondRun is not null)
-        {
-            interval = secondRun.Value - nextRun;
-            if (interval.TotalMilliseconds > 0xfffffffe) // Max Timer Interval
-            {
-                interval = TimeSpan.FromMilliseconds(0xfffffffe);
-            }
-        }
-        _ = await this.RegisterOrUpdateReminder(ScheduledTaskReminderName, dueTime, interval);
-        this.taskState.State.Task.ModifiedAt = now;
-        await this.taskState.WriteStateAsync();
-    }
-
-        if (dueTime.TotalMilliseconds > 0xfffffffe) // Max Timer Interval
-        {
-            dueTime = TimeSpan.FromMilliseconds(0xfffffffe);
-        }
-
-        var secondRun = this.expression?.GetNextOccurrence(nextRun);
-        var interval = TimeSpan.FromMinutes(1);
-        if (secondRun is not null)
-        {
-            interval = secondRun.Value - nextRun;
-            if (interval.TotalMilliseconds > 0xfffffffe) // Max Timer Interval
-            {
-                interval = TimeSpan.FromMilliseconds(0xfffffffe);
-            }
-        }
-        _ = await this.RegisterOrUpdateReminder(ScheduledTaskReminderName, dueTime, interval);
-        this.taskState.State.Task.ModifiedAt = now;
-        await this.taskState.WriteStateAsync();
-    }
-
-    private async Task DisableReminderAsync(bool writeState = true)
-    {
-        var reminder = await this.GetReminder(ScheduledTaskReminderName);
-        if (reminder is not null)
-        {
-            await this.UnregisterReminder(reminder);
-            if (!writeState)
-            {
-                return;
-            }
-        }
-        this.taskState.State.Task.IsEnabled = false;
-        this.taskState.State.Task.NextRunAt = null;
-        this.taskState.State.Task.ModifiedAt = this.clockService.UtcNow;
-        await this.taskState.WriteStateAsync();
     }
 
     /// <inheritdoc/>
     public async Task ReceiveReminder(string reminderName, TickStatus status)
     {
-        switch (reminderName)
-        {
-            case ScheduledTaskReminderName:
-                await this.ProcessScheduledTaskReminderNameAsync(status);
-                break;
-            default:
-                this.logger.UnknownReminderName(reminderName);
-                break;
-        }
+        await this.TryToInitializeReminder();
+
+        await this.ProcessScheduledTaskReminderNameAsync(status);
 
         // Let's process the history queue after the timer tick and try to clear any backlogs.
         await this.ProcessHistoryQueuesAsync(batchSizePerQueue: 20);
 
-        // Ensure History buffer reminder is removed if nothing to process.
-        if (this.AreHistoryBuffersEmpty())
-        {
-            this.historyReminder = await this.GetReminder(HistoryReminderName);
-
-            // Disable the reminder if there is no more work to do. It'll get re-registered when new records are available.
-            if (this.historyReminder is not null)
-            {
-                await this.UnregisterReminder(this.historyReminder);
-            }
-            return;
-        }
-
-        // If HistoryBuffer isn't empty, let's ensure our reminder.
-        this.historyReminder = await this.RegisterOrUpdateReminder(HistoryReminderName, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        _ = await this.EnsureReminder();
     }
-
+    private bool ShouldTaskRun(DateTime when) => when >= this.taskState.State.Task.NextRunAt;
     private async Task ProcessScheduledTaskReminderNameAsync(TickStatus status)
     {
-        // We don't have a next run, so disable
-        if (this.taskState.State.Task.NextRunAt is null)
+        // We don't have a run scheduled, task is deleted, or it is disabled, do nothing.
+        // We may be here for just the history buffer flushing.
+        if (!this.HasNextRunAt() || this.IsTaskDeleted() || !this.IsTaskEnabled() || !this.ShouldTaskRun(this.clockService.UtcNow))
         {
-            await this.DisableReminderAsync();
-            return;
-        }
-        var now = this.clockService.UtcNow;
-        // If our interval exceeds max reminder dueTime, then we setup the reminder for the next interval
-        if (this.taskState.State.Task.NextRunAt > now)
-        {
-            await this.SetupReminderAsync();
             return;
         }
 
-        var sw = new Stopwatch();
-        sw.Start();
+        this.stopwatch.Start();
         var historyRecord = await this.ProcessTaskAsync();
-        sw.Stop();
+        this.stopwatch.Stop();
 
         historyRecord.State.CurrentTickTime = status.CurrentTickTime;
         historyRecord.State.Period = status.Period;
         historyRecord.State.FirstTickTime = status.FirstTickTime;
-        historyRecord.State.Duration = sw.Elapsed;
+        historyRecord.State.Duration = this.stopwatch.Elapsed;
+        this.stopwatch.Reset();
 
         this.taskState.State.TriggerHistoryBuffer.Add(historyRecord);
 
         this.taskState.State.Task.LastRunAt = status.CurrentTickTime;
-        if (this.expression is null)
-        {
-            await this.DisableReminderAsync();
-            return;
-        }
 
-        this.taskState.State.Task.NextRunAt = this.expression.GetNextOccurrence(status.CurrentTickTime);
-        this.taskState.State.Task.ModifiedAt = now;
-        await this.taskState.WriteStateAsync();
+        this.SetNextRunAt(this.taskState.State.Task.ModifiedAt);
 
-        await this.SetupReminderAsync();
+        this.taskState.State.Task.ModifiedAt = this.taskState.State.Task.LastRunAt.Value;
+
+        _ = await this.WriteState(true);
     }
 
-    private bool AreHistoryBuffersEmpty() => this.taskState.State.HistoryBuffer.Count == 0 && this.taskState.State.TriggerHistoryBuffer.Count == 0;
+    private bool HasEmptyHistoryBuffers() => this.taskState.State.HistoryBuffer.Count == 0 && this.taskState.State.TriggerHistoryBuffer.Count == 0;
     private async ValueTask ProcessHistoryQueuesAsync(int batchSizePerQueue = 10) => await Task.WhenAll(this.ProcessHistoryQueueAsync<IScheduledTaskHistoryGrain, ScheduledTaskMetadata, ScheduledTaskOperationType>(this.taskState.State.HistoryBuffer, batchSizePerQueue).AsTask(),
-           this.ProcessHistoryQueueAsync<IScheduledTaskTriggerHistoryGrain, ScheduledTaskTriggerHistory, TaskTriggerType>(this.taskState.State.TriggerHistoryBuffer, batchSizePerQueue).AsTask());
+               this.ProcessHistoryQueueAsync<IScheduledTaskTriggerHistoryGrain, ScheduledTaskTriggerHistory, TaskTriggerType>(this.taskState.State.TriggerHistoryBuffer, batchSizePerQueue).AsTask());
     private async ValueTask ProcessHistoryQueueAsync<TIRecorderGrainInterface, TStateType, TOperationType>(List<HistoryState<TStateType, TOperationType>> buffer, int batchSize)
         where TIRecorderGrainInterface : IHistoryGrain<TStateType, TOperationType>
         where TStateType : class, IHistoryRecordKeyPrefix, new()
@@ -505,7 +474,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             // If our app dies between the WriteStateAsync() and the Insert() that is fine because it still exists in storage
             try
             {
-                await this.taskState.WriteStateAsync();
+                _ = await this.WriteState(true);
             }
             catch (Exception ex)
             {
@@ -637,11 +606,14 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                     this.taskState.State.TenantId = tenantIdAsGuid;
                 }
             }
-            await context.Invoke();
         }
         catch (Exception exception)
         {
             this.logger.TenantScopedGrainFilter(exception, tenantId, context.Grain.GetPrimaryKeyString());
+            return;
         }
+
+        // Invoke the grain method and let exceptions flow freely back to the client 😆
+        await context.Invoke();
     }
 }

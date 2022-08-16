@@ -21,7 +21,7 @@ public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrai
 {
     private readonly ILogger logger;
     private readonly IPersistentState<HistoryState<TModel, TOperationType>> historyRecordState;
-
+    private static readonly TimeSpan OneMinute = TimeSpan.FromMinutes(1);
     /// <summary>
     /// ctor
     /// </summary>
@@ -57,6 +57,13 @@ public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrai
         {
             this.historyRecordState.State = history;
             await this.historyRecordState.WriteStateAsync();
+
+            // Deactivate the grain 2 minutes from now.
+            _ = this.RegisterTimer(_ =>
+             {
+                 this.DeactivateOnIdle();
+                 return Task.CompletedTask;
+             }, null, OneMinute, OneMinute);
 
             return true;
         }
