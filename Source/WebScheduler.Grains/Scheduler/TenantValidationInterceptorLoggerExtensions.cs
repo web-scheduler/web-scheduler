@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 /// <summary>
 /// <see cref="ILogger"/> extension methods. Helps log messages using strongly typing and source generators.
 /// </summary>
@@ -12,6 +13,6 @@ internal static partial class TenantValidationInterceptorLoggerExtensions
     [LoggerMessage(
       EventId = 7001,
       Level = LogLevel.Error,
-      Message = "Error with Tenant {tenantId} attemped access to {scheduledTaskId}")]
-    public static partial void TenantException(this ILogger logger, Exception ex, string tenantId, string scheduledTaskId);
+      Message = "Error with Tenant {tenantId} attempted access to {scheduledTaskId}")]
+    public static partial void TenantScopedGrainFilter(this ILogger logger, Exception ex, string tenantId, string scheduledTaskId);
 }

@@ -19,7 +19,7 @@ using System.Diagnostics;
 /// <summary>
 /// A scheduled task grain
 /// </summary>
-public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>
+public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>, IIncomingGrainCallFilter
 {
     private readonly ILogger<ScheduledTaskGrain> logger;
     private readonly IPersistentState<ScheduledTaskState> taskState;
@@ -54,17 +54,16 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     /// <inheritdoc/>
     public async ValueTask<ScheduledTaskMetadata> CreateAsync(ScheduledTaskMetadata scheduledTaskMetadata)
     {
+        if (this.taskState.State.TenantId == Guid.Empty)
+        {
+            throw new UnauthorizedAccessException("TenantId is empty.");
+        }
+
         if (this.taskState.Exists() && !this.taskState.State.IsDeleted)
         {
             this.logger.ScheduledTaskAlreadyExists(this.GetPrimaryKeyString());
             throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKeyString());
         }
-
-#pragma warning disable CA2208 // Instantiate argument exceptions correctly
-        var tenantId = RequestContext.Get(RequestContextKeys.TenantId) as string ?? throw new ArgumentNullException($"{RequestContextKeys.TenantId} not found in RequestContext");
-#pragma warning restore CA2208 // Instantiate argument exceptions correctly
-
-        this.taskState.State.TenantId = Guid.ParseExact(tenantId, "D");
 
         // Explictly set this incase this task was previously deleted and the id is being re-used.
         this.taskState.State.IsDeleted = false;
@@ -144,7 +143,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     private bool ShouldDisableReminder() => this.taskState.State.IsDeleted || (this.taskState.Exists() && !this.taskState.State.Task.IsEnabled);
     private void BuildExpressionAndSetNextRunAt(bool resetNextRunAt = false)
     {
-        // We should always have a valid CronExpression.
+        // We should always have a valid CronExpression, which is why we always try to evaluate it on start.
         this.expression = CronExpression.Parse(this.taskState.State.Task.CronExpression, CronFormat.IncludeSeconds);
 
         if (!this.taskState.State.Task.IsEnabled)
@@ -502,13 +501,53 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
     /// <inheritdoc/>
     [ReadOnly]
-    public ValueTask<bool?> IsOwnedByAsync(Guid tenantId)
+    public ValueTask<bool?> IsOwnedByAsync(Guid tenantId) => ValueTask.FromResult(this.IsOwnedInternal(tenantId));
+
+    private bool? IsOwnedInternal(Guid tenantId)
     {
         if (this.taskState.State.TenantId == Guid.Empty)
         {
-            return new();
+            return null;
         }
 
-        return new(this.taskState.State.TenantId == tenantId);
+        return this.taskState.State.TenantId == tenantId;
+    }
+
+    /// <summary>
+    /// Invokes this filter.
+    /// </summary>
+    /// <param name="context">The grain call context.</param>
+    /// <returns>A <see cref="Task" /> representing the work performed.</returns>
+    public async Task Invoke(IIncomingGrainCallContext context)
+    {
+        var tenantId = string.Empty;
+
+        try
+        {
+            if (context.InterfaceMethod.ReflectedType != typeof(IRemindable))
+            {
+                tenantId = RequestContext.Get(RequestContextKeys.TenantId) as string ?? throw new ArgumentNullException($"{RequestContextKeys.TenantId} not found in RequestContext");
+
+                var tenantIdAsGuid = Guid.ParseExact(tenantId, "D");
+
+                var valid = this.IsOwnedInternal(tenantIdAsGuid);
+                if (valid == false)
+                {
+                    this.logger.TenantUnauthorized(tenantId, context.Grain.GetPrimaryKeyString());
+                    throw new UnauthorizedAccessException();
+                }
+
+                // Claim the Scheduled Task Id
+                if (valid is null && context.ImplementationMethod.Name == nameof(IScheduledTaskGrain.CreateAsync))
+                {
+                    this.taskState.State.TenantId = tenantIdAsGuid;
+                }
+            }
+            await context.Invoke();
+        }
+        catch (Exception exception)
+        {
+            this.logger.TenantScopedGrainFilter(exception, tenantId, context.Grain.GetPrimaryKeyString());
+        }
     }
 }

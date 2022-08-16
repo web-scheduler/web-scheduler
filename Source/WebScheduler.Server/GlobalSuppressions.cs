@@ -5,5 +5,5 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "Validation of argument from context versus method parameter.", Scope = "member", Target = "~M:TaskScheduler.ServiceHost.Server.Interceptors.TenantValidationInterceptor.Invoke(Orleans.IIncomingGrainCallContext)~System.Threading.Tasks.Task")]
+[assembly: SuppressMessage("Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "Validation of argument from context versus method parameter.", Scope = "member", Target = "~M:WebScheduler.Server.Interceptors.TenantValidationInterceptor.Invoke(Orleans.IIncomingGrainCallContext)~System.Threading.Tasks.Task")]
 [assembly: SuppressMessage("Roslynator", "RCS1102:Make class static.", Justification = "Can't be static because we use it as generic parameter for ILogger.", Scope = "type", Target = "~T:WebScheduler.Server.Program")]
