@@ -434,6 +434,7 @@ end_of_line = crlf
 # Justification: Comments turned off
 # https://github.com/DotNetAnalyzers/StyleCopAnalyzers/blob/master/documentation/SA1515.md
 dotnet_diagnostic.SA1515.severity = none
+dotnet_public_api_analyzer.require_api_files = true
 
 # SA1600: A C# code element is missing a documentation header.
 # Justification: Comments turned off
@@ -481,6 +482,8 @@ csharp_style_unused_value_assignment_preference = discard_variable:suggestion
 csharp_style_unused_value_expression_statement_preference = discard_variable:suggestion
 csharp_indent_labels = no_change
 csharp_space_around_binary_operators = before_and_after
+csharp_style_prefer_top_level_statements = true:silent
+csharp_style_prefer_utf8_string_literals = true:suggestion
 
 ##########################################
 # License

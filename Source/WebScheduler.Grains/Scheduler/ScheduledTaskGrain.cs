@@ -16,16 +16,12 @@ using Orleans.Concurrency;
 using WebScheduler.Grains.Constants;
 using System.Diagnostics;
 using System;
-using Polly;
-using Polly.CircuitBreaker;
-
 /// <summary>
 /// A scheduled task grain
 /// </summary>
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>, IIncomingGrainCallFilter
 {
     private readonly ILogger<ScheduledTaskGrain> logger;
-    private readonly ICommonGrainStoragePolicy policies;
     private readonly IPersistentState<ScheduledTaskState> taskState;
     private readonly IClockService clockService;
     private readonly IHttpClientFactory httpClientFactory;
@@ -33,27 +29,24 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     private const string ScheduledTaskReminderName = "ScheduledTaskExecutor";
     private CronExpression? expression;
     private readonly Stopwatch stopwatch = new();
-    private IDisposable? retryTimeHandle;
     private IGrainReminder? scheduledTaskReminder;
     private static readonly TimeSpan OneMinute = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan TenSeconds = TimeSpan.FromSeconds(10);
 
     /// <summary>
     /// The constructor.
     /// </summary>
     /// <param name="logger">logger</param>
-    /// <param name="policies"></param>
     /// <param name="clockService">clock</param>
     /// <param name="httpClientFactory">httpClientFactory</param>
     /// <param name="clusterClient">clusterClient</param>
     /// <param name="task">state</param>
     public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger,
-        ICommonGrainStoragePolicy policies,
         IClockService clockService, IHttpClientFactory httpClientFactory, IClusterClient clusterClient,
         [PersistentState(StateName.ScheduledTaskState, GrainStorageProviderName.ScheduledTaskState)]
         IPersistentState<ScheduledTaskState> task)
     {
         this.logger = logger;
-        this.policies = policies;
         this.taskState = task;
         this.clockService = clockService;
         this.httpClientFactory = httpClientFactory;
@@ -232,7 +225,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         this.taskState.State.Task.CreatedAt = this.clockService.UtcNow;
     }
 
-    private async Task<bool> WriteState(bool shouldRetry = false)
+    private async Task<bool> WriteState()
     {
         try
         {
@@ -242,65 +235,9 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         catch (Exception ex)
         {
             this.logger.ErrorWritingState(ex, this.GetPrimaryKeyString());
-            if (!shouldRetry)
-            {
-                return false;
-            }
-
-            if (this.retryTimeHandle is not null)
-            {
-                return false;
-            }
-            // Keep state in memory to allow reminders to continue to fire in the event of transient failures at the storage level
-            // We'll keep populating the history buffer in an attempt to maintain uptime. In the event the silo crashes any unpersisted state will be lost, which isn't ideal, but it's better than not executing the task.
-            // Wait 2 seconds and retry every 30 seconds
-            this.retryTimeHandle = this.RegisterTimer(this.RetryWriteStateAsync, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(30));
             return false;
         }
     }
-
-    /// <summary>
-    /// Writes the grain state to avoid reentrancy in timer callbacks.
-    /// </summary>
-    public async Task InternalWriteState() => await this.taskState.WriteStateAsync();
-
-    private async Task RetryWriteStateAsync(object arg)
-    {
-        try
-        {
-            var policyResult = await this.policies.RetryPolicy
-                .ExecuteAndCaptureAsync((_) => this.SelfInvokeAfter<IScheduledTaskGrain>(async g => await g.InternalWriteState()),
-                context: new Context()
-                        .WithLogger(this.logger)
-                        .WithGrainKey(this.GetPrimaryKeyString()));
-
-            switch (policyResult.Outcome)
-            {
-                case OutcomeType.Successful:
-                    this.retryTimeHandle?.Dispose();
-                    break;
-                case OutcomeType.Failure:
-                    // keep retrying, do nothing
-                    break;
-                default:
-                    // Some other outcome so do nothing to retry
-                    break;
-            }
-        }
-        catch (BrokenCircuitException brokenCircuitException)
-        {
-            this.logger.ErrorWritingStateCircuitBreakerOpen(brokenCircuitException, this.GetPrimaryKeyString());
-        }
-        catch (Exception ex)
-        {
-            this.logger.ErrorWritingStateCircuitBreakerOpen(ex, this.GetPrimaryKeyString());
-        }
-        finally
-        {
-            this?.retryTimeHandle?.Dispose();
-        }
-    }
-
     private void PrepareState(ScheduledTaskOperationType operationType) => this.PrepareState(operationType, this.clockService.UtcNow);
 
     /// <summary>
@@ -435,7 +372,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         this.taskState.State.Task.ModifiedAt = this.taskState.State.Task.LastRunAt.Value;
 
-        _ = await this.WriteState(true);
+        // We don't care if this fails here it'll get fixed next time around.
+        _ = await this.WriteState();
     }
 
     private bool HasEmptyHistoryBuffers() => this.taskState.State.HistoryBuffer.Count == 0 && this.taskState.State.TriggerHistoryBuffer.Count == 0;
@@ -472,6 +410,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             {
                 // If we error on recording.
                 this.logger.ErrorRecordingHistory(ex, id);
+                return;
             }
 
             // 2. Remove from the buffer
@@ -480,15 +419,9 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             // 3. Persist state. If this succeeds, great, we've removed the record from the list.
             // if it fails, that is fine, beacause we reinsert it at the head of the list in the catch block.
             // If our app dies between the WriteStateAsync() and the Insert() that is fine because it still exists in storage
-            try
-            {
-                _ = await this.WriteState(true);
-            }
-            catch (Exception ex)
-            {
-                this.logger.ErrorWritingState(ex, this.GetPrimaryKeyString());
 
-                // Add the item back to the list.
+            if (!await this.WriteState())
+            {
                 buffer.Insert(0, historyRecord);
             }
         }
@@ -546,7 +479,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
                 requestMessage.Content = content;
             }
-
+            client.Timeout = TenSeconds;
             var response = await client.SendAsync(requestMessage);
             result.State.HttpStatusCode = response.StatusCode;
             result.State.Headers = response.Headers.ToHashSet();

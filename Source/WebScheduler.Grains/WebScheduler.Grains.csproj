@@ -40,15 +40,17 @@
     <PackageReference Include="Microsoft.Orleans.Runtime.Abstractions" Version="3.6.5" />
     <PackageReference Include="Polly" Version="7.2.3" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+
+    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.3.44" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup Label="Project References">
     <ProjectReference Include="..\WebScheduler.Abstractions\WebScheduler.Abstractions.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.3.44" />
-    <PackageReference Update="MinVer" Version="4.1.0" />
-  </ItemGroup>
 
 </Project>

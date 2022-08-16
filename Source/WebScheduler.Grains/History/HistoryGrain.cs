@@ -56,9 +56,11 @@ public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrai
         try
         {
             this.historyRecordState.State = history;
+
             await this.historyRecordState.WriteStateAsync();
 
             // Deactivate the grain 2 minutes from now.
+            // This is best effort.
             _ = this.RegisterTimer(_ =>
              {
                  this.DeactivateOnIdle();
@@ -69,6 +71,8 @@ public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrai
         }
         catch (Exception ex)
         {
+            // Reset the state in event of failure
+            this.historyRecordState.State = default!;
             this.logger.ErrorRecordingHistory(ex, this.GetPrimaryKeyString());
             return false;
         }
