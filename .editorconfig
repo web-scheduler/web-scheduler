@@ -485,6 +485,10 @@ csharp_space_around_binary_operators = before_and_after
 csharp_style_prefer_top_level_statements = true:silent
 csharp_style_prefer_utf8_string_literals = true:suggestion
 
+
+# RCS1093: Remove file with no code.
+dotnet_diagnostic.RCS1093.severity = suggestion
+
 ##########################################
 # License
 ##########################################
