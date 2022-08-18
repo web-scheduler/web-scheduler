@@ -9,7 +9,7 @@
     <Nullable>enable</Nullable>
     <EditorConfig>true</EditorConfig>
     <AnalysisMode>Recommended</AnalysisMode>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Label="Versioning">

@@ -482,12 +482,11 @@ csharp_style_unused_value_assignment_preference = discard_variable:suggestion
 csharp_style_unused_value_expression_statement_preference = discard_variable:suggestion
 csharp_indent_labels = no_change
 csharp_space_around_binary_operators = before_and_after
-csharp_style_prefer_top_level_statements = true:silent
-csharp_style_prefer_utf8_string_literals = true:suggestion
-
 
 # RCS1093: Remove file with no code.
 dotnet_diagnostic.RCS1093.severity = suggestion
+csharp_style_prefer_top_level_statements = true:silent
+csharp_style_prefer_utf8_string_literals = true:suggestion
 
 ##########################################
 # License
@@ -523,3 +522,4 @@ dotnet_diagnostic.RCS1093.severity = suggestion
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 ##########################################
+
