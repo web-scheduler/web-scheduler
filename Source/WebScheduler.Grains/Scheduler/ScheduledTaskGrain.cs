@@ -16,6 +16,7 @@ using Orleans.Concurrency;
 using WebScheduler.Grains.Constants;
 using System.Diagnostics;
 using System;
+
 /// <summary>
 /// A scheduled task grain
 /// </summary>
@@ -344,12 +345,25 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         _ = await this.EnsureReminder();
     }
-    private bool ShouldTaskRun(DateTime when) => when >= this.taskState.State.Task.NextRunAt;
+    /// <summary>
+    /// Determines if the task should run based on the NextRunAt value.
+    /// If NextRunAt is null, we want to not run the task, so we subtract a second to fail the evaluation check.
+    /// </summary>
+    /// <param name="when"></param>
+    private bool ShouldTaskRun(DateTime when) => when >= (this.taskState.State.Task.NextRunAt ?? when.Subtract(TimeSpan.FromSeconds(1)));
+
     private async Task ProcessScheduledTaskReminderNameAsync(TickStatus status)
     {
+        var now = this.clockService.UtcNow;
         // We don't have a run scheduled, task is deleted, or it is disabled, do nothing.
         // We may be here for just the history buffer flushing.
-        if (!this.HasNextRunAt() || this.IsTaskDeleted() || !this.IsTaskEnabled() || !this.ShouldTaskRun(this.clockService.UtcNow))
+        if (!this.HasNextRunAt() || this.IsTaskDeleted() || !this.IsTaskEnabled())
+        {
+            return;
+        }
+
+        // NextRunAt is in the future, do nothing.
+        if (!this.ShouldTaskRun(status.CurrentTickTime))
         {
             return;
         }
@@ -366,11 +380,11 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         this.taskState.State.TriggerHistoryBuffer.Add(historyRecord);
 
-        this.taskState.State.Task.LastRunAt = status.CurrentTickTime;
+        this.taskState.State.Task.LastRunAt = now;
 
-        this.SetNextRunAt(this.taskState.State.Task.ModifiedAt);
+        this.SetNextRunAt(now);
 
-        this.taskState.State.Task.ModifiedAt = this.taskState.State.Task.LastRunAt.Value;
+        this.taskState.State.Task.ModifiedAt = now;
 
         // We don't care if this fails here it'll get fixed next time around.
         _ = await this.WriteState();
