@@ -117,7 +117,7 @@ dotnet_style_coalesce_expression = true:warning
 dotnet_style_null_propagation = true:warning
 dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
 # File header preferences
-# file_header_template = <copyright file="{fileName}" company="Serverless BU">\n© Serverless BU\n</copyright>
+# file_header_template = <copyright file="{fileName}" company="Elan Hasson">\n© Elan Hasson\n</copyright>
 # If you use StyleCop, you'll need to disable SA1636: File header copyright text should match.
 dotnet_diagnostic.SA1636.severity = none
 # Undocumented
