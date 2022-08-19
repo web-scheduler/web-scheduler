@@ -11,7 +11,5 @@ public class TestSiloConfigurator : ISiloConfigurator
     public void Configure(ISiloBuilder siloBuilder) =>
         siloBuilder
             .ConfigureServices(services => services.AddSingleton<ILoggerFactory>(_ => new SerilogLoggerFactory()))
-            .AddMemoryGrainStorageAsDefault()
-            .AddMemoryGrainStorage(GrainStorageProviderName.PubSubStore)
-            .AddSimpleMessageStreamProvider(StreamProviderName.Default);
+            .AddMemoryGrainStorageAsDefault();
 }

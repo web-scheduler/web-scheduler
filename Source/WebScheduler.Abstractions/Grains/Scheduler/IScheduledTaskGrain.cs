@@ -6,7 +6,7 @@ using Orleans.CodeGeneration;
 /// <summary>
 /// A scheduled task grain
 /// </summary>
-[Version(1)]
+[Version(3)]
 public interface IScheduledTaskGrain : IGrainWithStringKey
 {
     /// <summary>

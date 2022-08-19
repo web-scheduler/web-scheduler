@@ -5,12 +5,14 @@ using Orleans.Runtime;
 using WebScheduler.Abstractions.Grains.History;
 using WebScheduler.Abstractions.Grains.Scheduler;
 using WebScheduler.Grains.Constants;
+using Orleans.Placement;
 using WebScheduler.Grains.History;
 
 /// <summary>
 /// History for <see cref="IScheduledTaskGrain"/>.
 /// </summary>
-public class ScheduledTaskHistoryGrain : HistoryGrain<ScheduledTaskMetadata, ScheduledTaskOperationType>
+[PreferLocalPlacement]
+public class ScheduledTaskHistoryGrain : HistoryGrain<ScheduledTaskMetadata, ScheduledTaskOperationType>, IScheduledTaskHistoryGrain
 {
     /// <summary>
     /// The ctor.

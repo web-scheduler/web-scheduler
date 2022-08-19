@@ -7,11 +7,7 @@ using Orleans.CodeGeneration;
 /// A storage healthcheck grain
 /// </summary>
 [Version(1)]
-public interface IStorageHealthCheckGrain : IGrainWithGuidKey
+public interface IStorageHealthCheckGrain : IGrainWithStringKey
 {
-    /// <summary>
-    /// Checks the health of storage for grains.
-    /// </summary>
-    /// <returns>A value task.</returns>
     ValueTask CheckAsync();
 }

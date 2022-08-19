@@ -16,7 +16,7 @@ internal static partial class SchedulerLoggerExtensions
         EventId = 6001,
         Level = LogLevel.Warning,
         Message = "Scheduled task {Id} doesn't exist.")]
-    public static partial void ScheduledTaskDoesNotExists(this ILogger logger, string id);
+    public static partial void ScheduledTaskNotFound(this ILogger logger, string id);
 
     [LoggerMessage(
         EventId = 6002,
@@ -38,7 +38,31 @@ internal static partial class SchedulerLoggerExtensions
 
     [LoggerMessage(
     EventId = 6005,
-    Level = LogLevel.Warning,
-    Message = "Unknown ReminderName {ReminderName}.")]
-    public static partial void UnknownReminderName(this ILogger<ScheduledTaskGrain> logger, string reminderName);
+    Level = LogLevel.Error,
+    Message = "Unable to create scheduled task reminder.")]
+    public static partial void ErrorRegisteringReminder(this ILogger<ScheduledTaskGrain> logger, Exception ex);
+
+    [LoggerMessage(
+    EventId = 6006,
+    Level = LogLevel.Error,
+    Message = "Unable to unregister scheduled task reminder.")]
+    public static partial void ErrorUnRegisteringReminder(this ILogger<ScheduledTaskGrain> logger, Exception ex);
+
+    [LoggerMessage(
+    EventId = 6007,
+    Level = LogLevel.Error,
+    Message = "Unable to clone task state.")]
+    public static partial void ErrorCloningTaskState(this ILogger<ScheduledTaskGrain> logger);
+
+    [LoggerMessage(
+    EventId = 6008,
+    Level = LogLevel.Error,
+    Message = "Error writing state for '{Id}'; Retry {RetryCount}.")]
+    public static partial void ErrorWritingStateRetry(this ILogger logger, Exception exception, string id, int retryCount);
+
+    [LoggerMessage(
+    EventId = 6009,
+    Level = LogLevel.Error,
+    Message = "Error writing state for '{Id}'; Circuit Breaker triggered.")]
+    public static partial void ErrorWritingStateCircuitBreakerOpen(this ILogger logger, Exception exception, string id);
 }

@@ -25,7 +25,7 @@ public class GrainHealthCheck : IHealthCheck
     {
         try
         {
-            await this.client.GetGrain<ILocalHealthCheckGrain>(Guid.Empty).CheckAsync().ConfigureAwait(true);
+            await this.client.GetGrain<ILocalHealthCheckGrain>(Guid.Empty.ToString()).CheckAsync();
         }
         catch (Exception exception)
         {

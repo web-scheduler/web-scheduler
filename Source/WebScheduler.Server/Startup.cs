@@ -5,7 +5,6 @@ using WebScheduler.ConfigureOptions;
 using WebScheduler.Server.HealthChecks;
 using Serilog;
 using WebScheduler.Abstractions.Services;
-#pragma warning disable CA1724 // The type name conflicts with the namespace name 'Orleans.Runtime.Startup'
 public class Startup
 #pragma warning restore CA1724 // The type name conflicts with the namespace name 'Orleans.Runtime.Startup'
 {
