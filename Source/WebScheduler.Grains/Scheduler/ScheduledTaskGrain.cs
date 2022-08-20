@@ -341,7 +341,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         await this.ProcessScheduledTaskReminderNameAsync(status);
 
         // Let's process the history queue after the timer tick and try to clear any backlogs.
-        await this.ProcessHistoryQueuesAsync(batchSizePerQueue: 20);
+        await this.ProcessHistoryQueueAsync<IScheduledTaskHistoryGrain, ScheduledTaskMetadata, ScheduledTaskOperationType>(this.taskState.State.HistoryBuffer, 10);
+        await this.ProcessHistoryQueueAsync<IScheduledTaskTriggerHistoryGrain, ScheduledTaskTriggerHistory, TaskTriggerType>(this.taskState.State.TriggerHistoryBuffer, 10);
 
         _ = await this.EnsureReminder();
     }
@@ -391,8 +392,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     }
 
     private bool HasEmptyHistoryBuffers() => this.taskState.State.HistoryBuffer.Count == 0 && this.taskState.State.TriggerHistoryBuffer.Count == 0;
-    private async ValueTask ProcessHistoryQueuesAsync(int batchSizePerQueue = 10) => await Task.WhenAll(this.ProcessHistoryQueueAsync<IScheduledTaskHistoryGrain, ScheduledTaskMetadata, ScheduledTaskOperationType>(this.taskState.State.HistoryBuffer, batchSizePerQueue).AsTask(),
-               this.ProcessHistoryQueueAsync<IScheduledTaskTriggerHistoryGrain, ScheduledTaskTriggerHistory, TaskTriggerType>(this.taskState.State.TriggerHistoryBuffer, batchSizePerQueue).AsTask());
+
     private async ValueTask ProcessHistoryQueueAsync<TIRecorderGrainInterface, TStateType, TOperationType>(List<HistoryState<TStateType, TOperationType>> buffer, int batchSize)
         where TIRecorderGrainInterface : IHistoryGrain<TStateType, TOperationType>
         where TStateType : class, IHistoryRecordKeyPrefix, new()
@@ -417,25 +417,24 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 // Recorder failed to record.
                 if (!result)
                 {
-                    return;
+                    continue;
                 }
+
+                // 2. Remove from the buffer
+                buffer.RemoveAt(0);
             }
             catch (Exception ex)
             {
                 // If we error on recording.
                 this.logger.ErrorRecordingHistory(ex, id);
-                return;
             }
 
-            // 2. Remove from the buffer
-            buffer.RemoveAt(0);
-
             // 3. Persist state. If this succeeds, great, we've removed the record from the list.
-            // if it fails, that is fine, beacause we reinsert it at the head of the list in the catch block.
+            // if it fails, that is fine, beacause we reinsert it at the head
             // If our app dies between the WriteStateAsync() and the Insert() that is fine because it still exists in storage
-
             if (!await this.WriteState())
             {
+                // If we fail to write state, we need to reinsert the record at the head of the list.
                 buffer.Insert(0, historyRecord);
             }
         }
