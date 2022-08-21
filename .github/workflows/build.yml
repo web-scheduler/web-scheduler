@@ -35,6 +35,10 @@ jobs:
         version: ["8.0.27"]
         os: [ubuntu-latest] # windows-latest, macOS-latest'
     steps:
+      - name: Sets MINVERBUILDMETADATA to build.${{github.run_number}}
+        run: |
+          echo "MINVERBUILDMETADATA=build.${{github.run_number}}" >> $GITHUB_ENV
+        if: github.event_name != 'release'
       - name: Pull ${{matrix.db}}:${{matrix.version}} and setup Docker
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
@@ -107,16 +111,6 @@ jobs:
       - name: Dotnet Cake Test ${{matrix.db}}:${{matrix.version}}
         run: dotnet cake --target=Test
         shell: pwsh
-      - name: "Publish Artifact - WebScheduler.Server.IntegrationTest.html"
-        uses: actions/upload-artifact@v3
-        with:
-          name: WebScheduler.Server.IntegrationTest.html
-          path: ./Artifacts/WebScheduler.Server.IntegrationTest.html
-      - name: "Publish Artifact - WebScheduler.Server.IntegrationTest.html"
-        uses: actions/upload-artifact@v3
-        with:
-          name: WebScheduler.Server.IntegrationTest.trx
-          path: ./Artifacts/WebScheduler.Server.IntegrationTest.trx
       - name: "Dotnet Cake Publish"
         run: dotnet cake --target=Publish
         shell: pwsh
@@ -134,10 +128,10 @@ jobs:
           path: "./Artifacts/Pack"
       - name: Cleanup ./Artifacts
         run: rm -rf ./Artifacts/Pack ./Artifacts/Publish
-      - name: "Publish Artifacts"
+      - name: "Publish Test and Code Coverage Artifacts"
         uses: actions/upload-artifact@v3
         with:
-          name: ${{matrix.os}}
+          name: Test and Code Coverage Results - ${{matrix.os}}
           path: "./Artifacts"
       - name: "List all files"
         run: ls -R
