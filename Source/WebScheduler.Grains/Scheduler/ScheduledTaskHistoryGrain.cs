@@ -7,6 +7,7 @@ using WebScheduler.Abstractions.Grains.Scheduler;
 using WebScheduler.Grains.Constants;
 using Orleans.Placement;
 using WebScheduler.Grains.History;
+using WebScheduler.Abstractions.Services;
 
 /// <summary>
 /// History for <see cref="IScheduledTaskGrain"/>.
@@ -18,10 +19,12 @@ public class ScheduledTaskHistoryGrain : HistoryGrain<ScheduledTaskMetadata, Sch
     /// The ctor.
     /// </summary>
     /// <param name="logger">logger</param>
+    /// <param name="exceptionObserver"></param>
     /// <param name="state">state</param>
     public ScheduledTaskHistoryGrain(
         ILogger<ScheduledTaskHistoryGrain> logger,
+        IExceptionObserver exceptionObserver,
         [PersistentState(StateName.ScheduledTaskMetadataHistory, GrainStorageProviderName.ScheduledTaskMetadataHistory)]
-        IPersistentState<HistoryState<ScheduledTaskMetadata,ScheduledTaskOperationType>> state) : base(logger, state)
+        IPersistentState<HistoryState<ScheduledTaskMetadata,ScheduledTaskOperationType>> state) : base(exceptionObserver, logger, state)
     { }
 }

@@ -22,6 +22,7 @@ using System;
 /// </summary>
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>, IIncomingGrainCallFilter
 {
+    private readonly IExceptionObserver? exceptionObserver;
     private readonly ILogger<ScheduledTaskGrain> logger;
     private readonly IPersistentState<ScheduledTaskState> taskState;
     private readonly IClockService clockService;
@@ -38,15 +39,19 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     /// The constructor.
     /// </summary>
     /// <param name="logger">logger</param>
+    /// <param name="exceptionObserver"></param>
     /// <param name="clockService">clock</param>
     /// <param name="httpClientFactory">httpClientFactory</param>
     /// <param name="clusterClient">clusterClient</param>
     /// <param name="task">state</param>
-    public ScheduledTaskGrain(ILogger<ScheduledTaskGrain> logger,
+    public ScheduledTaskGrain(
+        ILogger<ScheduledTaskGrain> logger,
+        IExceptionObserver exceptionObserver,
         IClockService clockService, IHttpClientFactory httpClientFactory, IClusterClient clusterClient,
         [PersistentState(StateName.ScheduledTaskState, GrainStorageProviderName.ScheduledTaskState)]
         IPersistentState<ScheduledTaskState> task)
     {
+        this.exceptionObserver = exceptionObserver;
         this.logger = logger;
         this.taskState = task;
         this.clockService = clockService;
@@ -75,9 +80,11 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         this.PrepareState(ScheduledTaskOperationType.Create, this.taskState.State.Task.CreatedAt);
 
-        if (!await this.WriteState())
+        var (_, result) = await this.WriteState();
+        if (!result)
         {
             // Reset in memory state by deactivating the grain.
+            // We can't just clear the state because this could be a case of the caller re-using a scheduledTaskId
             this.DeactivateOnIdle();
             throw new ErrorCreatingScheduledTaskException();
         }
@@ -111,6 +118,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             catch (Exception ex)
             {
                 this.logger.ErrorRegisteringReminder(ex);
+                await this.exceptionObserver!.OnException(ex);
+
                 return false;
             }
         }
@@ -131,6 +140,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         catch (Exception ex)
         {
             this.logger.ErrorUnRegisteringReminder(ex);
+            await this.exceptionObserver!.OnException(ex);
+
             // We return success if we can't unregister the reminder, we will unregister during the next reminder tick.
             return true;
         }
@@ -172,7 +183,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         this.PrepareState(ScheduledTaskOperationType.Update);
 
-        if (!await this.WriteState())
+        var (_, result) = await this.WriteState();
+        if (!result)
         {
             // restore in-memory state to before the changes
             this.taskState.State.Task = oldTaskState;
@@ -226,17 +238,19 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         this.taskState.State.Task.CreatedAt = this.clockService.UtcNow;
     }
 
-    private async Task<bool> WriteState()
+    private async Task<(Exception? exception, bool wasSuccessful)> WriteState()
     {
         try
         {
             await this.taskState.WriteStateAsync();
-            return true;
+            return (exception: null, wasSuccessful: true);
         }
         catch (Exception ex)
         {
             this.logger.ErrorWritingState(ex, this.GetPrimaryKeyString());
-            return false;
+            await this.exceptionObserver!.OnException(ex);
+
+            return (exception: null, wasSuccessful: true);
         }
     }
     private void PrepareState(ScheduledTaskOperationType operationType) => this.PrepareState(operationType, this.clockService.UtcNow);
@@ -304,7 +318,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         this.PrepareState(ScheduledTaskOperationType.Delete, this.taskState.State.Task.DeletedAt.Value);
 
-        if (!await this.WriteState())
+        var (_, result) = await this.WriteState();
+        if (!result)
         {
             // restore in-memory state to before the changes
             this.taskState.State.Task = oldTaskState;
@@ -338,7 +353,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     {
         await this.TryToInitializeReminder();
 
-        await this.ProcessScheduledTaskReminderNameAsync(status);
+        await this.ProcessScheduledTaskReminderAsync(status);
 
         // Let's process the history queue after the timer tick and try to clear any backlogs.
         await this.ProcessHistoryQueueAsync<IScheduledTaskHistoryGrain, ScheduledTaskMetadata, ScheduledTaskOperationType>(this.taskState.State.HistoryBuffer, 10);
@@ -353,7 +368,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     /// <param name="when"></param>
     private bool ShouldTaskRun(DateTime when) => when >= (this.taskState.State.Task.NextRunAt ?? when.Subtract(TimeSpan.FromSeconds(1)));
 
-    private async Task ProcessScheduledTaskReminderNameAsync(TickStatus status)
+    private async Task ProcessScheduledTaskReminderAsync(TickStatus status)
     {
         var now = this.clockService.UtcNow;
         // We don't have a run scheduled, task is deleted, or it is disabled, do nothing.
@@ -388,6 +403,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         this.taskState.State.Task.ModifiedAt = now;
 
         // We don't care if this fails here it'll get fixed next time around.
+        // This is best effort, we favor the execution of tasks over completness of the historical record or task state.
         _ = await this.WriteState();
     }
 
@@ -408,7 +424,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             var historyRecord = buffer[0];
             var id = $"{this.GetPrimaryKeyString()}-{historyRecord.State.KeyPrefix()}{historyRecord.RecordedAt:u}";
 
-            // 1. Record History. If we fail here it is OK as it is an idempotent operation and we'll get it next time.
+            // 1. Record History. If we fail here it is OK as it is an idempotent operation and we'll get it next time and remove it from the buffer.
             try
             {
                 var recorder = this.clusterClient.GetGrain<IHistoryGrain<TStateType, TOperationType>>(id);
@@ -417,25 +433,30 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 // Recorder failed to record.
                 if (!result)
                 {
+                    // try with the next item in the buffer
                     continue;
                 }
 
-                // 2. Remove from the buffer
+                // 2. Remove from the buffer since the history record was writen
                 buffer.RemoveAt(0);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                // If we error on recording.
-                this.logger.ErrorRecordingHistory(ex, id);
+                // If we error on recording, we'll try again next time around.
+                this.logger.ErrorRecordingHistory(exception, id);
+                await this.exceptionObserver!.OnException(exception);
+                continue;
             }
 
-            // 3. Persist state. If this succeeds, great, we've removed the record from the list.
-            // if it fails, that is fine, beacause we reinsert it at the head
-            // If our app dies between the WriteStateAsync() and the Insert() that is fine because it still exists in storage
-            if (!await this.WriteState())
+            // 3. History record is already persisted, and we've removed the record from the in-memory history buffer.
+            // if the task's state write fails, that is fine, and we do not need to re-add it to the buffer since it has already
+            // been offloaded to durable storage.
+            // if the grain deactivates before we can write state 
+            // This is best effort, we favor the execution of tasks over completness of the historical record or task state.
+            var (ex, writeResult) = await this.WriteState();
+            if (!writeResult && ex is not null)
             {
-                // If we fail to write state, we need to reinsert the record at the head of the list.
-                buffer.Insert(0, historyRecord);
+                this.logger.ErrorRecordingHistory(ex, id);
             }
         }
     }
@@ -507,6 +528,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             this.logger.ErrorExecutingHttpTrigger(ex, this.GetPrimaryKeyString());
             result.State.Error = ex.Message;
             result.State.Result = TriggerResult.Failed;
+            await this.exceptionObserver!.OnException(ex);
+
         }
         finally
         {
@@ -564,6 +587,9 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         catch (Exception exception)
         {
             this.logger.TenantScopedGrainFilter(exception, tenantId, context.Grain.GetPrimaryKeyString());
+
+            await this.exceptionObserver!.OnException(exception);
+
             return;
         }
 

@@ -35,7 +35,8 @@ public class Startup
             .AddCheck<GrainHealthCheck>(nameof(GrainHealthCheck))
             .AddCheck<SiloHealthCheck>(nameof(SiloHealthCheck))
             .AddCheck<StorageHealthCheck>(nameof(StorageHealthCheck)).Services
-            .AddSingleton<IClockService, ClockService>();
+            .AddSingleton<IClockService, ClockService>()
+            .AddSingleton<IExceptionObserver, NoOpExceptionObserver>();
 
     public virtual void Configure(IApplicationBuilder application) =>
         application
