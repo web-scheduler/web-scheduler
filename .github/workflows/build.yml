@@ -35,6 +35,10 @@ jobs:
         version: ["8.0.27"]
         os: [ubuntu-latest] # windows-latest, macOS-latest'
     steps:
+      - name: Sets env vars for release
+        run: |
+          echo "MINVERBUILDMETADATA: build.${{github.run_number}}" >> $GITHUB_ENV
+        if: github.event_name != 'release'
       - name: Pull ${{matrix.db}}:${{matrix.version}} and setup Docker
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
