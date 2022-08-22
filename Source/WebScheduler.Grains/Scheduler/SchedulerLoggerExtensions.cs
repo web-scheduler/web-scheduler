@@ -19,13 +19,35 @@ internal static partial class SchedulerLoggerExtensions
     public static partial void ScheduledTaskNotFound(this ILogger logger, string id);
 
     [LoggerMessage(
-        EventId = 6002,
-        Level = LogLevel.Error,
+        EventId = 6202,
+        Level = LogLevel.Debug,
         Message = "Error executing HttpTrigger for {Id}.")]
     public static partial void ErrorExecutingHttpTrigger(this ILogger logger, Exception exception, string id);
+    [LoggerMessage(
+    EventId = 6203,
+    Level = LogLevel.Debug,
+    Message = "Executing HttpTrigger for {Id} Timed Out.")]
+    public static partial void ErrorExecutingHttpTriggerTrimedOut(this ILogger logger, Exception exception, string id);
+    [LoggerMessage(
+    EventId = 6204,
+    Level = LogLevel.Debug,
+    Message = "Failed to get reminder for {Id}.")]
+    public static partial void FailedToGetReminder(this ILogger logger, Exception exception, string id);
 
     [LoggerMessage(
-    EventId = 6003,
+    EventId = 6205,
+    Level = LogLevel.Debug,
+    Message = "Failed to register reminder for {Id}.")]
+    public static partial void FailedToRegisterReminder(this ILogger logger, Exception exception, string id);
+
+    [LoggerMessage(
+    EventId = 6206,
+    Level = LogLevel.Debug,
+    Message = "Failed to unregister reminder for {Id}.")]
+    public static partial void FailedToUnRegisterReminder(this ILogger logger, Exception exception, string id);
+
+    [LoggerMessage(
+    EventId = 6207,
     Level = LogLevel.Error,
     Message = "Error recording history for ScheduledTask {Id}.")]
     public static partial void ErrorRecordingHistory(this ILogger logger, Exception exception, string id);

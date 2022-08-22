@@ -16,13 +16,14 @@ using Orleans.Concurrency;
 using WebScheduler.Grains.Constants;
 using System.Diagnostics;
 using System;
+using WebScheduler.Grains.Diagnostics.Metrics;
 
 /// <summary>
 /// A scheduled task grain
 /// </summary>
 public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITenantScopedGrain<IScheduledTaskGrain>, IIncomingGrainCallFilter
 {
-    private readonly IExceptionObserver? exceptionObserver;
+    private readonly IExceptionObserver exceptionObserver;
     private readonly ILogger<ScheduledTaskGrain> logger;
     private readonly IPersistentState<ScheduledTaskState> taskState;
     private readonly IClockService clockService;
@@ -32,8 +33,10 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     private CronExpression? expression;
     private readonly Stopwatch stopwatch = new();
     private IGrainReminder? scheduledTaskReminder;
+    private string scheduledTaskId;
     private static readonly TimeSpan OneMinute = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan TenSeconds = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan FifteenSeconds = TimeSpan.FromSeconds(15);
 
     /// <summary>
     /// The constructor.
@@ -59,14 +62,35 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         this.clusterClient = clusterClient;
     }
 
-    private async ValueTask TryToInitializeReminder()
+    private async ValueTask<bool> TryToInitializeReminder()
     {
         if (this.scheduledTaskReminder is not null)
         {
-            return;
+            return true;
         }
 
-        this.scheduledTaskReminder = await this.GetReminder(ScheduledTaskReminderName);
+        try
+        {
+            this.scheduledTaskReminder = await this.GetReminder(ScheduledTaskReminderName);
+            ScheduledTaskInstruments.ScheduledTaskGetReminderSucceededCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId),
+            new KeyValuePair<string, object?>("name", ScheduledTaskReminderName),
+        }));
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ScheduledTaskInstruments.ScheduledTaskGetReminderFailedCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId),
+            new KeyValuePair<string, object?>("name", ScheduledTaskReminderName),
+            }));
+
+            this.logger.FailedToGetReminder(ex,this.scheduledTaskId);
+            await this.exceptionObserver.ObserveException(ex);
+            return false;
+        }
     }
 
     /// <inheritdoc/>
@@ -74,6 +98,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     {
         this.EnsureInitialTaskState();
 
+        var isReused = this.IsTaskDeleted();
         this.InitializeTask(scheduledTaskMetadata);
 
         this.SetNextRunAt(this.taskState.State.Task.CreatedAt);
@@ -95,12 +120,22 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             this.DeactivateOnIdle();
             throw new ErrorCreatingScheduledTaskException();
         }
+
+        ScheduledTaskInstruments.ScheduledTaskCreatedCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("recreated", isReused),
+            new KeyValuePair<string, object?>("enabled", this.taskState.State.Task.IsEnabled),
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId)
+        }));
         return this.taskState.State.Task;
     }
 
     private async Task<bool> EnsureReminder()
     {
-        await this.TryToInitializeReminder();
+        if(!await this.TryToInitializeReminder())
+        {
+            return false;
+        }
 
         if (!this.HasEmptyHistoryBuffers() || this.IsTaskEnabled())
         {
@@ -113,12 +148,24 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             try
             {
                 this.scheduledTaskReminder = await this.RegisterOrUpdateReminder(ScheduledTaskReminderName, OneMinute, OneMinute);
+
+                ScheduledTaskInstruments.ScheduledTaskRegisterReminderSucceededCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId),
+            new KeyValuePair<string, object?>("name", ScheduledTaskReminderName),
+                }));
                 return true;
             }
             catch (Exception ex)
             {
+                ScheduledTaskInstruments.ScheduledTaskRegisterReminderFailedCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId),
+            new KeyValuePair<string, object?>("name", ScheduledTaskReminderName),
+                }));
+
                 this.logger.ErrorRegisteringReminder(ex);
-                await this.exceptionObserver!.OnException(ex);
+                await this.exceptionObserver.OnException(ex);
 
                 return false;
             }
@@ -135,12 +182,23 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         {
             await this.UnregisterReminder(this.scheduledTaskReminder);
             this.scheduledTaskReminder = null;
+
+            ScheduledTaskInstruments.ScheduledTaskRegisterUnRegisterReminderSucceededCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId),
+            new KeyValuePair<string, object?>("name", ScheduledTaskReminderName),
+                }));
             return true;
         }
         catch (Exception ex)
         {
+            ScheduledTaskInstruments.ScheduledTaskRegisterUnRegistereminderFailedCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId),
+            new KeyValuePair<string, object?>("name", ScheduledTaskReminderName),
+                }));
             this.logger.ErrorUnRegisteringReminder(ex);
-            await this.exceptionObserver!.OnException(ex);
+            await this.exceptionObserver.OnException(ex);
 
             // We return success if we can't unregister the reminder, we will unregister during the next reminder tick.
             return true;
@@ -156,8 +214,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         if (this.TaskExists())
         {
-            this.logger.ScheduledTaskAlreadyExists(this.GetPrimaryKeyString());
-            throw new ScheduledTaskAlreadyExistsException(this.GetPrimaryKeyString());
+            this.logger.ScheduledTaskAlreadyExists(this.scheduledTaskId);
+            throw new ScheduledTaskAlreadyExistsException(this.scheduledTaskId);
         }
     }
 
@@ -197,7 +255,11 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             this.taskState.State.Task = oldTaskState;
             throw new ErrorUpdatingScheduledTaskException();
         }
-
+        ScheduledTaskInstruments.ScheduledTaskUpdatedCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("enabled", this.taskState.State.Task.IsEnabled),
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId)
+        }));
         return this.taskState.State.Task;
     }
 
@@ -218,8 +280,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     {
         if (!this.TaskExists())
         {
-            this.logger.ScheduledTaskNotFound(this.GetPrimaryKeyString());
-            throw new ScheduledTaskNotFoundException(this.GetPrimaryKeyString());
+            this.logger.ScheduledTaskNotFound(this.scheduledTaskId);
+            throw new ScheduledTaskNotFoundException(this.scheduledTaskId);
         }
     }
 
@@ -247,8 +309,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         }
         catch (Exception ex)
         {
-            this.logger.ErrorWritingState(ex, this.GetPrimaryKeyString());
-            await this.exceptionObserver!.OnException(ex);
+            this.logger.ErrorWritingState(ex, this.scheduledTaskId);
+            await this.exceptionObserver.OnException(ex);
 
             return (exception: null, wasSuccessful: true);
         }
@@ -303,6 +365,11 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     {
         this.EnsureTaskExists();
 
+        ScheduledTaskInstruments.ScheduledTaskReadCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId)
+        }));
+
         return new ValueTask<ScheduledTaskMetadata>(this.taskState.State.Task);
     }
 
@@ -332,11 +399,17 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             this.taskState.State.Task = oldTaskState;
             throw new ErrorDeletingScheduledTaskException();
         }
+
+        ScheduledTaskInstruments.ScheduledTaskDeletedCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId)
+        }));
     }
 
     /// <inheritdoc/>
     public override async Task OnActivateAsync()
     {
+        this.scheduledTaskId = this.GetPrimaryKeyString();
         // Do nothing if the history buffers are empty and the task is disabled
         if (this.HasEmptyHistoryBuffers() && !this.IsTaskEnabled())
         {
@@ -422,7 +495,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             }
 
             var historyRecord = buffer[0];
-            var id = $"{this.GetPrimaryKeyString()}-{historyRecord.State.KeyPrefix()}{historyRecord.RecordedAt:u}";
+            var id = $"{this.scheduledTaskId}-{historyRecord.State.KeyPrefix()}{historyRecord.RecordedAt:u}";
 
             // 1. Record History. If we fail here it is OK as it is an idempotent operation and we'll get it next time and remove it from the buffer.
             try
@@ -444,7 +517,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             {
                 // If we error on recording, we'll try again next time around.
                 this.logger.ErrorRecordingHistory(exception, id);
-                await this.exceptionObserver!.OnException(exception);
+                await this.exceptionObserver.OnException(exception);
                 continue;
             }
 
@@ -514,22 +587,42 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 requestMessage.Content = content;
             }
             client.Timeout = TenSeconds;
-            var response = await client.SendAsync(requestMessage);
-            result.State.HttpStatusCode = response.StatusCode;
-            result.State.Headers = response.Headers.ToHashSet();
-            result.State.HttpContent = await response.Content.ReadAsStringAsync();
 
-            _ = response.EnsureSuccessStatusCode();
+            using (var tokenSource = new CancellationTokenSource(FifteenSeconds))
+            {
+                var response = await client.SendAsync(requestMessage);
+                result.State.HttpStatusCode = response.StatusCode;
+                result.State.Headers = response.Headers.ToHashSet();
+                _ = response.EnsureSuccessStatusCode();
 
+                result.State.HttpContent = await response.Content.ReadAsStringAsync();
+            }
+
+            ScheduledTaskInstruments.ScheduledTaskHttpSucceededCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId)
+        }));
             result.State.Result = TriggerResult.Success;
+        }
+        catch (TaskCanceledException ex)
+        {
+            this.logger.ErrorExecutingHttpTriggerTrimedOut(ex, this.scheduledTaskId);
+
+            ScheduledTaskInstruments.ScheduledTaskHttpTimedOutCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId)
+            }));
         }
         catch (Exception ex)
         {
-            this.logger.ErrorExecutingHttpTrigger(ex, this.GetPrimaryKeyString());
+            this.logger.ErrorExecutingHttpTrigger(ex, this.scheduledTaskId);
+            ScheduledTaskInstruments.ScheduledTaskHttpTriggerFailedCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId)
+            }));
             result.State.Error = ex.Message;
             result.State.Result = TriggerResult.Failed;
-            await this.exceptionObserver!.OnException(ex);
-
+            await this.exceptionObserver.OnException(ex);
         }
         finally
         {
@@ -573,7 +666,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 var valid = this.IsOwnedInternal(tenantIdAsGuid);
                 if (valid == false)
                 {
-                    this.logger.TenantUnauthorized(tenantId, context.Grain.GetPrimaryKeyString());
+                    this.logger.TenantUnauthorized(tenantId, this.scheduledTaskId);
                     throw new UnauthorizedAccessException();
                 }
 
@@ -586,9 +679,9 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         }
         catch (Exception exception)
         {
-            this.logger.TenantScopedGrainFilter(exception, tenantId, context.Grain.GetPrimaryKeyString());
+            this.logger.TenantScopedGrainFilter(exception, tenantId, this.scheduledTaskId);
 
-            await this.exceptionObserver!.OnException(exception);
+            await this.exceptionObserver.OnException(exception);
 
             return;
         }

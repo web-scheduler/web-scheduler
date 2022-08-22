@@ -34,4 +34,8 @@
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="MinVer" Version="4.2.0" />
+  </ItemGroup>
+
 </Project>
