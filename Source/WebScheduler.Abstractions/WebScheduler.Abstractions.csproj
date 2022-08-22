@@ -53,7 +53,7 @@
 
   <ItemGroup>
     <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.3.44" />
-    <PackageReference Update="MinVer" Version="4.1.0" />
+    <PackageReference Update="MinVer" Version="4.2.0" />
   </ItemGroup>
 
 </Project>
