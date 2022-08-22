@@ -86,7 +86,7 @@ internal class ActivityPropagationOutgoingGrainCallFilter : ActivityPropagationG
         {
             this.propagator.Inject(activity, null, static (carrier, key, value) => RequestContext.Set(key, value));
         }
-
+        activity?.Stop();
         return Process(context, activity);
     }
 }
@@ -115,7 +115,7 @@ internal class ActivityPropagationIncomingGrainCallFilter : ActivityPropagationG
             static (object carrier, string fieldName, out string fieldValue, out IEnumerable<string> fieldValues) =>
             {
                 fieldValues = default;
-                fieldValue = RequestContext.Get(fieldName) as string ?? "Unknown";
+                fieldValue = RequestContext.Get(fieldName) as string;
             },
             out var traceParent,
             out var traceState);
@@ -134,7 +134,7 @@ internal class ActivityPropagationIncomingGrainCallFilter : ActivityPropagationG
                 var baggage = this._propagator.ExtractBaggage(null, static (object carrier, string fieldName, out string fieldValue, out IEnumerable<string> fieldValues) =>
                 {
                     fieldValues = default!;
-                    fieldValue = RequestContext.Get(fieldName) as string ?? "Unknown";
+                    fieldValue = RequestContext.Get(fieldName) as string;
                 });
 
                 if (baggage is not null)
