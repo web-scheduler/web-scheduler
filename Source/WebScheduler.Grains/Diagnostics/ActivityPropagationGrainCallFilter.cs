@@ -14,7 +14,7 @@ internal abstract class ActivityPropagationGrainCallFilter
     protected const string TraceParentHeaderName = "traceparent";
     protected const string TraceStateHeaderName = "tracestate";
 
-    internal const string RpcSystem = "orleans";
+    internal const string RpcSystem = "webscheduler";
     internal const string ActivitySourceName = "WebScheduler";
 
     protected static readonly ActivitySource Source = new(ActivitySourceName);
