@@ -364,7 +364,12 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     public ValueTask<ScheduledTaskMetadata> GetAsync()
     {
         this.EnsureTaskExists();
-        ScheduledTaskInstruments.ScheduledTaskReadCounts.Add(1, new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId));
+
+        ScheduledTaskInstruments.ScheduledTaskReadCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
+            new KeyValuePair<string, object?>("tenantId", this.taskState.State.TenantId),
+            new KeyValuePair<string, object?>("scheduledTaskId", this.scheduledTaskId)
+        }));
+
         return new ValueTask<ScheduledTaskMetadata>(this.taskState.State.Task);
     }
 
