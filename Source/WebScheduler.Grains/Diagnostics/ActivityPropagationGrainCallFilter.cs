@@ -48,7 +48,7 @@ internal abstract class ActivityPropagationGrainCallFilter
             if (activity is not null && activity.IsAllDataRequested)
             {
                 // exception attributes from https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/exceptions.md
-                activity.SetTag("exception.type", e.GetType().FullName!)
+                activity.SetTag("exception.type", e.GetType().FullName)
                     .SetTag("exception.message", e.Message)
                     .SetTag("exception.stacktrace", e.StackTrace)
                     .SetTag("exception.escaped", true)
@@ -80,7 +80,7 @@ internal class ActivityPropagationOutgoingGrainCallFilter : ActivityPropagationG
     /// <inheritdoc />
     public Task Invoke(IOutgoingGrainCallContext context)
     {
-        var activity = Source.StartActivity($"{context.InterfaceMethod.DeclaringType?.FullName ?? "Unkown"}.{context.InterfaceMethod.Name}", ActivityKind.Client);
+        var activity = Source.StartActivity($"{context.InterfaceMethod?.DeclaringType?.FullName ?? "Unkown"}.{context?.InterfaceMethod?.Name ?? "Unknown"}", ActivityKind.Client);
 
         if (activity is not null)
         {
@@ -102,17 +102,14 @@ internal class ActivityPropagationIncomingGrainCallFilter : ActivityPropagationG
     /// Initializes a new instance of the <see cref="ActivityPropagationIncomingGrainCallFilter"/> class.
     /// </summary>
     /// <param name="propagator">The context propagator.</param>
-    public ActivityPropagationIncomingGrainCallFilter(DistributedContextPropagator propagator)
-    {
-        this._propagator = propagator;
-    }
+    public ActivityPropagationIncomingGrainCallFilter(DistributedContextPropagator propagator) => this._propagator = propagator;
 
     /// <inheritdoc />
     public Task Invoke(IIncomingGrainCallContext context)
     {
-        Activity activity = default;
+        Activity? activity = default;
         this._propagator.ExtractTraceIdAndState(null,
-            static (object carrier, string fieldName, out string fieldValue, out IEnumerable<string> fieldValues) =>
+            static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
             {
                 fieldValues = default;
                 fieldValue = RequestContext.Get(fieldName) as string;
@@ -122,7 +119,7 @@ internal class ActivityPropagationIncomingGrainCallFilter : ActivityPropagationG
 
         if (!string.IsNullOrEmpty(traceParent))
         {
-            activity = Source.CreateActivity($"{context.ImplementationMethod?.DeclaringType?.FullName ?? "Unkown"}.{context.ImplementationMethod?.Name ?? "Unkown"}", ActivityKind.Server, traceParent);
+            activity = Source.CreateActivity($"{context.ImplementationMethod?.DeclaringType?.FullName ?? "Unkown"}.{context?.ImplementationMethod?.Name ?? "Unkown"}", ActivityKind.Server, traceParent);
 
             if (activity is not null)
             {
@@ -131,7 +128,7 @@ internal class ActivityPropagationIncomingGrainCallFilter : ActivityPropagationG
                     activity.TraceStateString = traceState;
                 }
 
-                var baggage = this._propagator.ExtractBaggage(null, static (object carrier, string fieldName, out string fieldValue, out IEnumerable<string> fieldValues) =>
+                var baggage = this._propagator.ExtractBaggage(null, static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
                 {
                     fieldValues = default!;
                     fieldValue = RequestContext.Get(fieldName) as string;
