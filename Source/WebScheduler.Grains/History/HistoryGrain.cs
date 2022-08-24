@@ -7,6 +7,7 @@ using Orleans;
 using Orleans.Concurrency;
 using Orleans.Placement;
 using Orleans.Runtime;
+using Orleans.Storage;
 using WebScheduler.Abstractions.Grains.History;
 using WebScheduler.Abstractions.Grains.Scheduler;
 using WebScheduler.Abstractions.Services;
@@ -44,7 +45,7 @@ public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrai
     {
         if (!this.historyRecordState.RecordExists)
         {
-            return default;
+            throw new HistoryRecordNotFound(this.GetPrimaryKeyString());
         }
         return new(this.historyRecordState.State);
     }
@@ -53,36 +54,43 @@ public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrai
     public async ValueTask<bool> RecordAsync(HistoryState<TModel, TOperationType> history)
     {
         // If we've already recorded the data, it is a retry from a partially failed operation, so discard it.
-        if (this.historyRecordState.RecordExists)
-        {
-            return true;
-        }
 
+        var didExceptionHappen = false;
         try
         {
+            if (this.historyRecordState.RecordExists)
+            {
+                return true;
+            }
             this.historyRecordState.State = history;
 
             await this.historyRecordState.WriteStateAsync();
-
-            // Deactivate the grain 2 minutes from now.
-            // This is best effort.
-            _ = this.RegisterTimer(_ =>
-             {
-                 this.DeactivateOnIdle();
-                 return Task.CompletedTask;
-             }, null, OneMinute, OneMinute);
 
             return true;
         }
         catch (Exception ex)
         {
-            // Reset the state in event of failure
-            this.historyRecordState.State = default!;
+            didExceptionHappen = true;
             this.logger.ErrorRecordingHistory(ex, this.GetPrimaryKeyString());
 
             await this.exceptionObserver!.OnException(ex);
 
+            // In the event we get an exception, we will deactivate to clear state and whatever state is in the database will be reloaded.
+            // upon the next activation and if the caller attempts to re-write, it'll turn into a non-op.
+            this.DeactivateOnIdle();
             return false;
+        }
+        finally
+        {
+            // Timers aren't exactly free, there is a CPU cost to them. So we only create them if we sucessfully wrote the state.
+            if (!didExceptionHappen)
+            {
+                _ = this.RegisterTimer(_ =>
+                    {
+                        this.DeactivateOnIdle();
+                        return Task.CompletedTask;
+                    }, null, OneMinute, OneMinute);
+            }
         }
     }
 }
