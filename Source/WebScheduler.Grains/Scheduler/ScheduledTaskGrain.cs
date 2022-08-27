@@ -17,6 +17,7 @@ using WebScheduler.Grains.Constants;
 using System.Diagnostics;
 using System;
 using WebScheduler.Grains.Diagnostics.Metrics;
+using WebScheduler.Grains.Services;
 
 /// <summary>
 /// A scheduled task grain
@@ -26,6 +27,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     private readonly IExceptionObserver exceptionObserver;
     private readonly ILogger<ScheduledTaskGrain> logger;
     private readonly IPersistentState<ScheduledTaskState> taskState;
+    private readonly ScheduledTaskTriggerHistoryDataSaver scheduledTaskTriggerHistoryDataSaver;
     private readonly IClockService clockService;
     private readonly IHttpClientFactory httpClientFactory;
     private readonly IClusterClient clusterClient;
@@ -47,16 +49,19 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     /// <param name="httpClientFactory">httpClientFactory</param>
     /// <param name="clusterClient">clusterClient</param>
     /// <param name="task">state</param>
+    /// <param name="scheduledTaskTriggerHistoryDataSaver"></param>
     public ScheduledTaskGrain(
         ILogger<ScheduledTaskGrain> logger,
         IExceptionObserver exceptionObserver,
         IClockService clockService, IHttpClientFactory httpClientFactory, IClusterClient clusterClient,
         [PersistentState(StateName.ScheduledTaskState, GrainStorageProviderName.ScheduledTaskState)]
-        IPersistentState<ScheduledTaskState> task)
+        IPersistentState<ScheduledTaskState> task,
+        ScheduledTaskTriggerHistoryDataSaver scheduledTaskTriggerHistoryDataSaver)
     {
         this.exceptionObserver = exceptionObserver;
         this.logger = logger;
         this.taskState = task;
+        this.scheduledTaskTriggerHistoryDataSaver = scheduledTaskTriggerHistoryDataSaver;
         this.clockService = clockService;
         this.httpClientFactory = httpClientFactory;
         this.clusterClient = clusterClient;
@@ -87,7 +92,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             new KeyValuePair<string, object?>("name", ScheduledTaskReminderName),
             }));
 
-            this.logger.FailedToGetReminder(ex,this.scheduledTaskId);
+            this.logger.FailedToGetReminder(ex, this.scheduledTaskId);
             await this.exceptionObserver.ObserveException(ex);
             return false;
         }
@@ -132,7 +137,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
     private async Task<bool> EnsureReminder()
     {
-        if(!await this.TryToInitializeReminder())
+        if (!await this.TryToInitializeReminder())
         {
             return false;
         }
@@ -467,7 +472,11 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         historyRecord.State.Duration = this.stopwatch.Elapsed;
         this.stopwatch.Reset();
 
-        this.taskState.State.TriggerHistoryBuffer.Add(historyRecord);
+        await this.scheduledTaskTriggerHistoryDataSaver
+            .PostOneAsync(new(Key: $"{this.scheduledTaskId}-{historyRecord.State.KeyPrefix()}{historyRecord.RecordedAt:u}",
+                Value: historyRecord, Status: historyRecord.State.Error is null ?
+                    DataServicePriority.High : DataServicePriority.Low,
+                Timestamp: () => historyRecord.RecordedAt));
 
         this.taskState.State.Task.LastRunAt = now;
 

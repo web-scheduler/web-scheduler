@@ -5,6 +5,9 @@ using WebScheduler.ConfigureOptions;
 using WebScheduler.Server.HealthChecks;
 using Serilog;
 using WebScheduler.Abstractions.Services;
+using Microsoft.Extensions.DependencyInjection;
+using WebScheduler.Grains.Services;
+
 public class Startup
 #pragma warning restore CA1724 // The type name conflicts with the namespace name 'Orleans.Runtime.Startup'
 {
@@ -36,7 +39,9 @@ public class Startup
             .AddCheck<SiloHealthCheck>(nameof(SiloHealthCheck))
             .AddCheck<StorageHealthCheck>(nameof(StorageHealthCheck)).Services
             .AddSingleton<IClockService, ClockService>()
-            .AddSingleton<IExceptionObserver, NoOpExceptionObserver>();
+            .AddSingleton<IExceptionObserver, NoOpExceptionObserver>()
+            .AddSingleton<ScheduledTaskTriggerHistoryDataSaver>()
+            .AddHostedService(s => s.GetRequiredService<ScheduledTaskTriggerHistoryDataSaver>());
 
     public virtual void Configure(IApplicationBuilder application) =>
         application

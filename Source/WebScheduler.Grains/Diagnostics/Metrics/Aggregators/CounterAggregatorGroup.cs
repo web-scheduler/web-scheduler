@@ -1,8 +1,7 @@
+namespace WebScheduler.Grains.Diagnostics.Metrics.Aggregators;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
-
-namespace WebScheduler.Grains.Diagnostics.Metrics.Aggregators;
 
 internal sealed class CounterAggregatorGroup
 {

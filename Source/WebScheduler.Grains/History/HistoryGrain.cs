@@ -45,7 +45,7 @@ public abstract class HistoryGrain<TModel, TOperationType> : Grain, IHistoryGrai
     {
         if (!this.historyRecordState.RecordExists)
         {
-            throw new HistoryRecordNotFound(this.GetPrimaryKeyString());
+            throw new HistoryRecordNotFoundException(this.GetPrimaryKeyString());
         }
         return new(this.historyRecordState.State);
     }

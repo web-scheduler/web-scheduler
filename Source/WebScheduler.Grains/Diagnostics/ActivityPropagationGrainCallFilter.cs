@@ -3,8 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using global::Orleans.Runtime;
-using global::Orleans;
+using Orleans.Runtime;
+using Orleans;
 
 /// <summary>
 /// A grain call filter which helps to propagate activity correlation information across a call chain.
