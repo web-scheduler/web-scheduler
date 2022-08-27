@@ -27,7 +27,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     private readonly IExceptionObserver exceptionObserver;
     private readonly ILogger<ScheduledTaskGrain> logger;
     private readonly IPersistentState<ScheduledTaskState> taskState;
-    private readonly ScheduledTaskTriggerHistoryDataSaver scheduledTaskTriggerHistoryDataSaver;
+    private readonly ScheduledTaskTriggerHistoryGrainDataSaver scheduledTaskTriggerHistoryDataSaver;
     private readonly IClockService clockService;
     private readonly IHttpClientFactory httpClientFactory;
     private readonly IClusterClient clusterClient;
@@ -56,7 +56,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         IClockService clockService, IHttpClientFactory httpClientFactory, IClusterClient clusterClient,
         [PersistentState(StateName.ScheduledTaskState, GrainStorageProviderName.ScheduledTaskState)]
         IPersistentState<ScheduledTaskState> task,
-        ScheduledTaskTriggerHistoryDataSaver scheduledTaskTriggerHistoryDataSaver)
+        ScheduledTaskTriggerHistoryGrainDataSaver scheduledTaskTriggerHistoryDataSaver)
     {
         this.exceptionObserver = exceptionObserver;
         this.logger = logger;
@@ -472,11 +472,11 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         historyRecord.State.Duration = this.stopwatch.Elapsed;
         this.stopwatch.Reset();
 
-        await this.scheduledTaskTriggerHistoryDataSaver
+        await Task.Run(() => this.scheduledTaskTriggerHistoryDataSaver
             .PostOneAsync(new(Key: $"{this.scheduledTaskId}-{historyRecord.State.KeyPrefix()}{historyRecord.RecordedAt:u}",
                 Value: historyRecord, Status: historyRecord.State.Error is null ?
                     DataServicePriority.High : DataServicePriority.Low,
-                Timestamp: () => historyRecord.RecordedAt));
+                Timestamp: () => historyRecord.RecordedAt)));
 
         this.taskState.State.Task.LastRunAt = now;
 

@@ -40,8 +40,8 @@ public class Startup
             .AddCheck<StorageHealthCheck>(nameof(StorageHealthCheck)).Services
             .AddSingleton<IClockService, ClockService>()
             .AddSingleton<IExceptionObserver, NoOpExceptionObserver>()
-            .AddSingleton<ScheduledTaskTriggerHistoryDataSaver>()
-            .AddHostedService(s => s.GetRequiredService<ScheduledTaskTriggerHistoryDataSaver>());
+            .AddSingleton<ScheduledTaskTriggerHistoryGrainDataSaver>()
+            .AddHostedService(s => s.GetRequiredService<ScheduledTaskTriggerHistoryGrainDataSaver>());
 
     public virtual void Configure(IApplicationBuilder application) =>
         application
