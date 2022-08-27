@@ -38,7 +38,7 @@ namespace WebScheduler.Grains.Services
     /// <typeparam name="TDataItem"></typeparam>
     /// <typeparam name="TModel"></typeparam>
     /// <typeparam name="TPriority"></typeparam>
-    public abstract class BatchedPriorityConcurrentQueue<TDataItem, TModel, TPriority> : IHostedService
+    public abstract class BatchedPriorityConcurrentQueueWorker<TDataItem, TModel, TPriority> : IHostedService
     where TDataItem : IDataSavingItem<TModel, TPriority>
     where TModel : class
     where TPriority : Enum
@@ -90,11 +90,11 @@ namespace WebScheduler.Grains.Services
         private Task pushTask = default!;
 
         /// <summary>
-        /// 
+        /// Constructor.
         /// </summary>
         /// <param name="logger">the logger</param>
         /// <param name="initialQueueCapacity">The initial capacity of the <see cref="PriorityQueue{TElement, TPriority}"/></param>
-        public BatchedPriorityConcurrentQueue(ILogger logger, int initialQueueCapacity = 1_000)
+        public BatchedPriorityConcurrentQueueWorker(ILogger logger, int initialQueueCapacity = 1_000)
         {
             this.logger = logger;
             this.queue = new(initialQueueCapacity, Comparer<TDataItem>.Create(Priority));
@@ -117,7 +117,7 @@ namespace WebScheduler.Grains.Services
 
             return 0;
         }
-        
+
         /// <inheritdoc/>
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -126,7 +126,7 @@ namespace WebScheduler.Grains.Services
 
             return Task.CompletedTask;
         }
-        
+
         /// <inheritdoc/>
         public async Task StopAsync(CancellationToken cancellationToken)
         {
@@ -166,7 +166,6 @@ namespace WebScheduler.Grains.Services
         /// </summary>
         /// <param name="item"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
         public async Task PostOneAsync(TDataItem item, CancellationToken cancellationToken = default)
         {
             using var _ = await this.queueSemaphore.EnterAsync(cancellationToken);
@@ -199,22 +198,14 @@ namespace WebScheduler.Grains.Services
             finally
             {
                 this.SignalPushQueue();
-
             }
-
-            this.logger.LogTrace($"Received {count} items, discarded {discarded} items over capacity of {this.MaxCapacity}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool ShouldEnqueue()
-        {
+        private bool ShouldEnqueue() =>
             // check if we've met the batch size or the batch flush interval and signal the push queue to trigger.
-            if (this.queue.Count < this.MaxCapacity || this.MaxCapacity < 0)
-            {
-                return true;
-            }
-            return false;
-        }
+            this.queue.Count < this.MaxCapacity || this.MaxCapacity < 0;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SignalPushQueue()
         {
@@ -249,8 +240,6 @@ namespace WebScheduler.Grains.Services
             {
                 this.SignalPushQueue();
             }
-
-            this.logger.LogTrace($"Received {count} items, discarded {discarded} items over capacity of {this.MaxCapacity}");
         }
 
         private async Task PushAsync(CancellationToken cancellationToken)
@@ -290,9 +279,6 @@ namespace WebScheduler.Grains.Services
             {
                 buffer.Span[i] = this.queue.Dequeue();
             }
-
-            this.logger.LogTrace($"Took {buffer.Length} survivors from the queue");
-
             return buffer;
         }
 

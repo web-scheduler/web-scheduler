@@ -13,7 +13,7 @@ using System.Threading;
 /// Thinking is failures are more valuable than sucesssful trigger deliveries.
 /// </summary>
 public class ScheduledTaskTriggerHistoryGrainDataSaver :
-    BatchedPriorityConcurrentQueue<DataItem<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>, DataServicePriority>, HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>, DataServicePriority>
+    BatchedPriorityConcurrentQueueWorker<DataItem<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>, DataServicePriority>, HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>, DataServicePriority>
 {
     private readonly IClusterClient clusterClient;
     private readonly IExceptionObserver exceptionObserver;
@@ -47,7 +47,7 @@ public class ScheduledTaskTriggerHistoryGrainDataSaver :
 
         List<Task> BuildTaskList(ReadOnlyMemory<DataItem<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>, DataServicePriority>> items)
         {
-            var tasks = new List<Task>();
+            var tasks = new List<Task>(this.BatchSize);
             foreach (var item in items.Span)
             {
                 tasks.Add(BuildTask(item, cancellationToken));

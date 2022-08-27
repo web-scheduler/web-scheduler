@@ -53,5 +53,5 @@ internal sealed class CounterAggregator
 
     public void Add(long measurement) => Interlocked.Add(ref this.value, measurement);
 
-    public Measurement<long> Collect() => new(this.value, this.tags);
+    public Measurement<long> Collect() => new(this.value, tags: this.tags);
 }
