@@ -210,7 +210,7 @@ namespace WebScheduler.Grains.Services
         private void SignalPushQueue()
         {
             // check if we've met the batch size or the batch flush interval and signal the push queue to trigger.
-            if (this.queue.Count >= this.BatchSize || (this.lastBatchFlush + this.BatchFlushInterval) < DateTime.UtcNow)
+            if (this.queue.Count > 0 && (this.queue.Count >= this.BatchSize || (this.lastBatchFlush + this.BatchFlushInterval) < DateTime.UtcNow))
             {
                 this.pushEvent.Signal();
             }
