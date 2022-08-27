@@ -33,7 +33,7 @@ namespace WebScheduler.Grains.Services
     }
 
     /// <summary>
-    /// A concurrent priority queue that supports batching, batch processing concurrency limits, bounded and unbounded queue sizes, and a flush interval which overrides the batch size.
+    /// A concurrent priority queue worker that supports batching, batch processing concurrency limits, bounded and unbounded queue sizes, and a flush interval which overrides the batch size.
     /// </summary>
     /// <typeparam name="TDataItem"></typeparam>
     /// <typeparam name="TModel"></typeparam>
