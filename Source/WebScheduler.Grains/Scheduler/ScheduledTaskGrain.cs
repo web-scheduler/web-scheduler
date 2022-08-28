@@ -475,14 +475,12 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         await Task.Run(() => this.scheduledTaskTriggerHistoryDataSaver
             .PostOneAsync(new(Key: $"{this.scheduledTaskId}-{historyRecord.State.KeyPrefix()}{historyRecord.RecordedAt:u}",
                 Value: historyRecord, Status: historyRecord.State.Error is null ?
-                    DataServicePriority.High : DataServicePriority.Low,
+                    BatchedPriorityQueuePriority.High : BatchedPriorityQueuePriority.Low,
                 Timestamp: () => historyRecord.RecordedAt)));
 
         this.taskState.State.Task.LastRunAt = now;
 
         this.SetNextRunAt(now);
-
-        this.taskState.State.Task.ModifiedAt = now;
 
         // We don't care if this fails here it'll get fixed next time around.
         // This is best effort, we favor the execution of tasks over completness of the historical record or task state.

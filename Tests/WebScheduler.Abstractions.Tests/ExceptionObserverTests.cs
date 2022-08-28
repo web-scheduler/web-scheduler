@@ -10,7 +10,7 @@ public class ExceptionObserverTests
 {
     [Theory]
     [MemberData(nameof(AggregateExceptionTestData))]
-    public async void IExceptionObserverExtensions_Works<T>(T exception)
+    public async Task  IExceptionObserverExtensions_Works<T>(T exception)
         where T : Exception
     {
         var fakeExceptionObserver = A.Fake<IExceptionObserver>();

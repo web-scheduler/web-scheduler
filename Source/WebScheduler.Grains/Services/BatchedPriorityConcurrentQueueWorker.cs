@@ -2,10 +2,7 @@ namespace WebScheduler.Grains.Services
 {
     using Microsoft.Extensions.Hosting;
     using System.Threading;
-    using System.Collections.Concurrent;
-    using System.Buffers;
     using CommunityToolkit.HighPerformance.Buffers;
-    using Microsoft.Extensions.Logging;
     using Microsoft.VisualStudio.Threading;
     using System.Runtime.CompilerServices;
     using DotNext.Threading;
@@ -14,9 +11,9 @@ namespace WebScheduler.Grains.Services
     /// lower numbers have higher priority in the queue so are dequeued first
     /// we use this to discard "success" items first while leaving "failed" items in the queue for later
     /// </summary>
-    public enum DataServicePriority { Low = 0, High = 1 }
+    public enum BatchedPriorityQueuePriority { Low = 0, High = 1 }
 
-    public record DataItem<TModel, TPriority>(string Key, TModel Value, TPriority Status, Func<DateTime> Timestamp) : IDataSavingItem<TModel, TPriority>
+    public record BatchQueueItem<TModel, TPriority>(string Key, TModel Value, TPriority Status, Func<DateTime> Timestamp) : IDataSavingItem<TModel, TPriority>
         where TModel : class
         where TPriority : Enum;
 
@@ -83,22 +80,14 @@ namespace WebScheduler.Grains.Services
         private readonly PriorityQueue<TDataItem, TDataItem> queue;
 
         private CancellationTokenSource? cancellation;
-        /// <summary>
-        /// The logger instance.
-        /// </summary>
-        protected readonly ILogger logger;
+
         private Task pushTask = default!;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="logger">the logger</param>
         /// <param name="initialQueueCapacity">The initial capacity of the <see cref="PriorityQueue{TElement, TPriority}"/></param>
-        public BatchedPriorityConcurrentQueueWorker(ILogger logger, int initialQueueCapacity = 1_000)
-        {
-            this.logger = logger;
-            this.queue = new(initialQueueCapacity, Comparer<TDataItem>.Create(Priority));
-        }
+        protected BatchedPriorityConcurrentQueueWorker(int initialQueueCapacity = 1_000) => this.queue = new(initialQueueCapacity, Comparer<TDataItem>.Create(Priority));
         private static int Priority(TDataItem a, TDataItem b)
         {
             // success is lower than failed so it gets discarded first
@@ -119,16 +108,27 @@ namespace WebScheduler.Grains.Services
         }
 
         /// <inheritdoc/>
-        public Task StartAsync(CancellationToken cancellationToken)
+        public virtual Task StartAsync(CancellationToken cancellationToken)
         {
             this.cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+            _ = Task.Run(() => this.FlushBatchIntervalTimer(cancellationToken), cancellationToken);
             this.pushTask = Task.Run(() => this.PushAsync(this.cancellation.Token), this.cancellation.Token);
 
             return Task.CompletedTask;
         }
 
+        private async Task FlushBatchIntervalTimer(CancellationToken cancellationToken)
+        {
+            PeriodicTimer timer = new(this.BatchFlushInterval);
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                this.SignalPushQueue();
+            }
+        }
+
         /// <inheritdoc/>
-        public async Task StopAsync(CancellationToken cancellationToken)
+        public virtual async Task StopAsync(CancellationToken cancellationToken)
         {
             // cancel the push loop
             this.cancellation?.Cancel();
@@ -248,6 +248,16 @@ namespace WebScheduler.Grains.Services
             {
                 // wait for work to be available
                 await this.pushEvent.WaitAsync(cancellationToken);
+
+                using (var _ = await this.queueSemaphore.EnterAsync(cancellationToken))
+                {
+                    // only process the batch if queue isn't empty
+                    if (this.queue.Count == 0)
+                    {
+                        continue;
+                    }
+                }
+
                 // grab all survivors after priority discarding
                 using var buffer = await this.TakeAllAsync(cancellationToken);
 
