@@ -19,15 +19,16 @@ using System.Linq;
 using System.Collections.Immutable;
 using FluentAssertions;
 using System.Globalization;
+using CommunityToolkit.HighPerformance;
 
 public class BatchedPriorityConcurrentQueueWorker_Tests
 {
     [Theory]
     [InlineData(10 /*maxCapacity*/, 1/*batchSize*/, 1/*concurrentFlows*/, 1/*initialQueueCapacitiy*/, "00:00:10" /*batchFlushInterval*/, 1/*expectedBatches*/, 1 /*number of items to create*/)]
     [InlineData(10_000, 500, 1, 1, "00:00:10", 1, 20)]
+    [InlineData(10_000, 50, 1, 1, "00:10:00", 10, 500)]
     public async Task BatchedPriorityConcurrentQueueWorker_Basic(int maxCapacity, int batchSize, int concurrentFlows, int initialQueueCapacity, string batchFlushInterval, int? expectedBatches, int numberOfItemsToCreate)
     {
-        var expectedItems = 0;
         var capturedBatches = new ConcurrentBag<(DateTime CapturedTime, BatchQueueItem<string, BatchedPriorityQueuePriority>[] Items)>();
 
         var queue = new TestingBatchPriorityQueueWorker(maxCapacity, batchSize, concurrentFlows, initialQueueCapacity, TimeSpan.Parse(batchFlushInterval, CultureInfo.InvariantCulture), processCapturer: items =>
@@ -40,38 +41,40 @@ public class BatchedPriorityConcurrentQueueWorker_Tests
         await queue.StartAsync(cts.Token);
 
         var expectedData = new Dictionary<string, BatchQueueItem<string, BatchedPriorityQueuePriority>>();
-        for (int i = 0; i < numberOfItemsToCreate; i++)
-        {
-            var value = new BatchQueueItem<string, BatchedPriorityQueuePriority>(Key: Guid.NewGuid().ToString(), Value: Guid.NewGuid().ToString(), Status: BatchedPriorityQueuePriority.High, Timestamp: () => DateTime.Now);
-            expectedData.Add(value.Key, value);
 
-            await queue.PostOneAsync(value, cts.Token);
+        using (var buffer = Enumerable.Range(1, numberOfItemsToCreate).Select(x =>
+        {
+            var item = new BatchQueueItem<string, BatchedPriorityQueuePriority>(Key: Guid.NewGuid().ToString(), Value: Guid.NewGuid().ToString(), Status: (BatchedPriorityQueuePriority)Random.Shared.Next(2), Timestamp: () => DateTime.Now);
+            expectedData.Add(item.Key, item);
+            return item;
+        }).ToMemoryOwner())
+        {
+            await queue.PostAsync(buffer.Memory);
         }
 
-        expectedItems++;
-        while (true)
-        {
-            // we've seen the expected number of items across all batches, our work is done.
-            if (capturedBatches.Sum(c => c.Items.Length) == expectedItems)
-            {
-                break;
-            }
-        }
+        await Task.Run(() =>
+         {
+             while (true)
+             {
+                 // we've seen the expected number of items across all batches, our work is done.
+                 if (capturedBatches.Select(c=> c.Items.Length).Sum() == numberOfItemsToCreate)
+                 {
+                     break;
+                 }
+             }
+             return Task.CompletedTask;
+         });
+
         await queue.StopAsync(cts.Token);
 
+
+        capturedBatches.Select(c => c.Items.Length).Sum().Should().Be(numberOfItemsToCreate);
+
+        capturedBatches.SelectMany(b => b.Items).ToList().Should().BeEquivalentTo(expectedData.Values);
         if (expectedBatches.HasValue)
         {
             capturedBatches.Should().HaveCount(expectedBatches.Value);
         }
-
-        capturedBatches.Sum(c => c.Items.Length).Should().Be(expectedItems);
-
-        capturedBatches.SelectMany(b => b.Items).ToList().Should().BeEquivalentTo(expectedData.Values);
-        //// push 10K random items
-        //using (var buffer = Enumerable.Range(1, 10_000).Select(x => new DataItem(x, x.ToString(), (Status)Random.Shared.Next(2), DateTime.UtcNow)).ToMemoryOwner())
-        //{
-        //    await service.PostAsync(buffer.Memory);
-        //}
     }
 
 
@@ -98,8 +101,18 @@ public class BatchedPriorityConcurrentQueueWorker_Tests
         public Func<ReadOnlyMemory<BatchQueueItem<string, BatchedPriorityQueuePriority>>, bool> ProcessAsyncAction { get; }
 
         protected override Task<bool> ProcessAsync(ReadOnlyMemory<BatchQueueItem<string, BatchedPriorityQueuePriority>> items, CancellationToken cancellationToken) => Task.FromResult(this.ProcessAsyncAction(items));
-
-
     }
 
+}
+public static class MemoryExtensions
+{
+    public static IMemoryOwner<T> ToMemoryOwner<T>(this IEnumerable<T> items)
+    {
+        var buffer = new ArrayPoolBufferWriter<T>(items.TryGetNonEnumeratedCount(out var count) ? count : -2);
+        foreach (var item in items)
+        {
+            buffer.Write(item);
+        }
+        return buffer;
+    }
 }

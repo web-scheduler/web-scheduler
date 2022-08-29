@@ -88,8 +88,13 @@ namespace WebScheduler.Grains.Services
         /// </summary>
         /// <param name="initialQueueCapacity">The initial capacity of the <see cref="PriorityQueue{TElement, TPriority}"/></param>
         protected BatchedPriorityConcurrentQueueWorker(int initialQueueCapacity = 1_000) => this.queue = new(initialQueueCapacity, Comparer<TDataItem>.Create(Priority));
-        private static int Priority(TDataItem a, TDataItem b)
+        private int Priority(TDataItem a, TDataItem b)
         {
+            // We haven't hit Max Capacity, so don't discard anything
+            if (this.queue.Count <= this.MaxCapacity)
+            {
+                return 0;
+            }
             // success is lower than failed so it gets discarded first
             var byStatus = a.Status.CompareTo(b.Status);
             if (byStatus != 0)
@@ -283,8 +288,8 @@ namespace WebScheduler.Grains.Services
         private async Task<MemoryOwner<TDataItem>> TakeAllAsync(CancellationToken cancellationToken)
         {
             using var _ = await this.queueSemaphore.EnterAsync(cancellationToken);
-
-            var buffer = MemoryOwner<TDataItem>.Allocate(this.queue.Count);
+            var count = this.queue.Count;
+            var buffer = MemoryOwner<TDataItem>.Allocate(count >= this.BatchSize ? this.BatchSize : count);
             for (var i = 0; i < buffer.Length; i++)
             {
                 buffer.Span[i] = this.queue.Dequeue();
