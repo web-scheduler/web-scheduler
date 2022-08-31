@@ -29,13 +29,13 @@
   </PropertyGroup>
 
   <ItemGroup Label="Package References">
-    <PackageReference Include="Boxed.AspNetCore" Version="8.0.0+build.457" />
+    <PackageReference Include="Boxed.AspNetCore" Version="8.1.2+build.669" />
     <PackageReference Include="Cronos" Version="0.7.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.6.5" />
     <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.5" />
     <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.6.5" />
-    <PackageReference Include="MySql.Data" Version="8.0.30" />
+    <PackageReference Include="MySqlConnector" Version="2.1.13" />
     <PackageReference Include="OrleansDashboard" Version="3.6.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
