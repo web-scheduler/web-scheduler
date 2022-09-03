@@ -114,6 +114,9 @@ public class OrleansDbContext : DbContext
                 entity.HasKey(e => new { e.Id, e.GrainIdHash, e.GrainTypeHash })
                 .HasName("PRIMARY");
 
+                entity.HasIndex(e => new { e.GrainIdHash, e.GrainTypeHash })
+                .HasDatabaseName("IX_OrleansStorage");
+
                 entity.ToTable("OrleansStorage");
 
                 entity.Property(e => e.GrainIdExtensionString)
