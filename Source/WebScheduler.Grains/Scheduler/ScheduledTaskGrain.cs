@@ -312,7 +312,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             this.logger.ErrorWritingState(ex, this.scheduledTaskId);
             await this.exceptionObserver.OnException(ex);
 
-            return (exception: null, wasSuccessful: true);
+            return (exception: ex, wasSuccessful: false);
         }
     }
     private void PrepareState(ScheduledTaskOperationType operationType) => this.PrepareState(operationType, this.clockService.UtcNow);
