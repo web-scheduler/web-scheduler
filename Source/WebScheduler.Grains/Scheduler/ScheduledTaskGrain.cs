@@ -525,12 +525,11 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 await this.exceptionObserver.OnException(exception);
                 continue;
             }
-
-            // 3. History record is already persisted, and we've removed the record from the in-memory history buffer.
-            // we will attempt to write it exactly once per reminder tick.
-            // if the grain deactivates before we can write state, the persisted history will be a nonop on the next attempt
-           return shouldWrite;
         }
+       // 3. History record is already persisted, and we've removed the record from the in-memory history buffer.
+       // we will attempt to write it exactly once per reminder tick.
+       // if the grain deactivates before we can write state, the persisted history will be a nonop on the next attempt
+       return shouldWrite;
     }
     private async Task<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>> ProcessTaskAsync() => this.taskState.State.Task.TriggerType switch
     {
