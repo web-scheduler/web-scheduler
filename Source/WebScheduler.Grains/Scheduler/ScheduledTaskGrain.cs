@@ -30,6 +30,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     private readonly IHttpClientFactory httpClientFactory;
     private readonly IClusterClient clusterClient;
     private const string ScheduledTaskReminderName = "ScheduledTaskExecutor";
+    private const string ScheduledTaskHttpClientName = "ScheduledTaskHttpClient";
     private CronExpression? expression;
     private readonly Stopwatch stopwatch = new();
     private IGrainReminder? scheduledTaskReminder;
@@ -547,7 +548,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             Operation = TaskTriggerType.HttpTrigger,
         };
 
-        var client = this.httpClientFactory.CreateClient();
+        var client = this.httpClientFactory.CreateClient(ScheduledTaskHttpClientName);
 
         StringContent? content = null;
 
