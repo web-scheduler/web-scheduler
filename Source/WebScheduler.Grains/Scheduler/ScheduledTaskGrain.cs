@@ -87,7 +87,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             new KeyValuePair<string, object?>("name", ScheduledTaskReminderName),
             }));
 
-            this.logger.FailedToGetReminder(ex,this.scheduledTaskId);
+            this.logger.FailedToGetReminder(ex, this.scheduledTaskId);
             await this.exceptionObserver.ObserveException(ex);
             return false;
         }
@@ -132,7 +132,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
     private async Task<bool> EnsureReminder()
     {
-        if(!await this.TryToInitializeReminder())
+        if (!await this.TryToInitializeReminder())
         {
             return false;
         }
@@ -312,7 +312,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             this.logger.ErrorWritingState(ex, this.scheduledTaskId);
             await this.exceptionObserver.OnException(ex);
 
-            return (exception: null, wasSuccessful: true);
+            return (exception: ex, wasSuccessful: false);
         }
     }
     private void PrepareState(ScheduledTaskOperationType operationType) => this.PrepareState(operationType, this.clockService.UtcNow);
@@ -426,12 +426,19 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     {
         await this.TryToInitializeReminder();
 
-        await this.ProcessScheduledTaskReminderAsync(status);
+        var shouldWrite = await this.ProcessScheduledTaskReminderAsync(status);
 
         // Let's process the history queue after the timer tick and try to clear any backlogs.
-        await this.ProcessHistoryQueueAsync<IScheduledTaskHistoryGrain, ScheduledTaskMetadata, ScheduledTaskOperationType>(this.taskState.State.HistoryBuffer, 10);
-        await this.ProcessHistoryQueueAsync<IScheduledTaskTriggerHistoryGrain, ScheduledTaskTriggerHistory, TaskTriggerType>(this.taskState.State.TriggerHistoryBuffer, 10);
+        shouldWrite = await this.ProcessHistoryQueueAsync<IScheduledTaskHistoryGrain, ScheduledTaskMetadata, ScheduledTaskOperationType>(this.taskState.State.HistoryBuffer, 10)
+                || shouldWrite;
 
+        shouldWrite = await this.ProcessHistoryQueueAsync<IScheduledTaskTriggerHistoryGrain, ScheduledTaskTriggerHistory, TaskTriggerType>(this.taskState.State.TriggerHistoryBuffer, 10)
+                || shouldWrite;
+
+        if (shouldWrite)
+        {
+            _ = await this.WriteState();
+        }
         _ = await this.EnsureReminder();
     }
     /// <summary>
@@ -441,20 +448,20 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     /// <param name="when"></param>
     private bool ShouldTaskRun(DateTime when) => when >= (this.taskState.State.Task.NextRunAt ?? when.Subtract(TimeSpan.FromSeconds(1)));
 
-    private async Task ProcessScheduledTaskReminderAsync(TickStatus status)
+    private async Task<bool> ProcessScheduledTaskReminderAsync(TickStatus status)
     {
         var now = this.clockService.UtcNow;
         // We don't have a run scheduled, task is deleted, or it is disabled, do nothing.
         // We may be here for just the history buffer flushing.
         if (!this.HasNextRunAt() || this.IsTaskDeleted() || !this.IsTaskEnabled())
         {
-            return;
+            return false;
         }
 
         // NextRunAt is in the future, do nothing.
         if (!this.ShouldTaskRun(status.CurrentTickTime))
         {
-            return;
+            return false;
         }
 
         this.stopwatch.Start();
@@ -475,23 +482,23 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
         this.taskState.State.Task.ModifiedAt = now;
 
-        // We don't care if this fails here it'll get fixed next time around.
-        // This is best effort, we favor the execution of tasks over completness of the historical record or task state.
-        _ = await this.WriteState();
+        // We won't try to write state here, but at the end of the tick
+        return true;
     }
 
     private bool HasEmptyHistoryBuffers() => this.taskState.State.HistoryBuffer.Count == 0 && this.taskState.State.TriggerHistoryBuffer.Count == 0;
 
-    private async ValueTask ProcessHistoryQueueAsync<TIRecorderGrainInterface, TStateType, TOperationType>(List<HistoryState<TStateType, TOperationType>> buffer, int batchSize)
+    private async ValueTask<bool> ProcessHistoryQueueAsync<TIRecorderGrainInterface, TStateType, TOperationType>(List<HistoryState<TStateType, TOperationType>> buffer, int batchSize)
         where TIRecorderGrainInterface : IHistoryGrain<TStateType, TOperationType>
         where TStateType : class, IHistoryRecordKeyPrefix, new()
         where TOperationType : Enum
     {
+        var shouldWrite = false;
         for (var i = 0; i < batchSize; i++)
         {
             if (buffer.Count == 0)
             {
-                return;
+                return shouldWrite;
             }
 
             var historyRecord = buffer[0];
@@ -512,26 +519,19 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
                 // 2. Remove from the buffer since the history record was writen
                 buffer.RemoveAt(0);
+                shouldWrite = true;
             }
             catch (Exception exception)
             {
                 // If we error on recording, we'll try again next time around.
                 this.logger.ErrorRecordingHistory(exception, id);
                 await this.exceptionObserver.OnException(exception);
-                continue;
-            }
-
-            // 3. History record is already persisted, and we've removed the record from the in-memory history buffer.
-            // if the task's state write fails, that is fine, and we do not need to re-add it to the buffer since it has already
-            // been offloaded to durable storage.
-            // if the grain deactivates before we can write state 
-            // This is best effort, we favor the execution of tasks over completness of the historical record or task state.
-            var (ex, writeResult) = await this.WriteState();
-            if (!writeResult && ex is not null)
-            {
-                this.logger.ErrorRecordingHistory(ex, id);
             }
         }
+        // 3. History record is already persisted, and we've removed the record from the in-memory history buffer.
+        // we will attempt to write it exactly once per reminder tick.
+        // if the grain deactivates before we can write state, the persisted history will be a nonop on the next attempt
+        return shouldWrite;
     }
     private async Task<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>> ProcessTaskAsync() => this.taskState.State.Task.TriggerType switch
     {
