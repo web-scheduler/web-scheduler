@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebScheduler.DataMigrations;
 
@@ -11,9 +12,10 @@ using WebScheduler.DataMigrations;
 namespace WebScheduler.DataMigrations.Migrations
 {
     [DbContext(typeof(OrleansDbContext))]
-    partial class OrleansDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220902235510_Add IX_OrleansStorage to OrleansStorage table")]
+    partial class AddIX_OrleansStoragetoOrleansStoragetable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
