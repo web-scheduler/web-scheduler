@@ -17,6 +17,8 @@ using WebScheduler.Grains.Constants;
 using System.Diagnostics;
 using System;
 using WebScheduler.Grains.Diagnostics.Metrics;
+using Microsoft.Extensions.Options;
+using WebScheduler.Abstractions.Options;
 
 /// <summary>
 /// A scheduled task grain
@@ -27,10 +29,9 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     private readonly ILogger<ScheduledTaskGrain> logger;
     private readonly IPersistentState<ScheduledTaskState> taskState;
     private readonly IClockService clockService;
-    private readonly IHttpClientFactory httpClientFactory;
     private readonly IClusterClient clusterClient;
+    private readonly IOptions<ScheduledTaskGrainOptions> options;
     private const string ScheduledTaskReminderName = "ScheduledTaskExecutor";
-    private const string ScheduledTaskHttpClientName = "ScheduledTaskHttpClient";
     private CronExpression? expression;
     private readonly Stopwatch stopwatch = new();
     private IGrainReminder? scheduledTaskReminder;
@@ -45,13 +46,14 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     /// <param name="logger">logger</param>
     /// <param name="exceptionObserver"></param>
     /// <param name="clockService">clock</param>
-    /// <param name="httpClientFactory">httpClientFactory</param>
     /// <param name="clusterClient">clusterClient</param>
+    /// <param name="options"></param>
     /// <param name="task">state</param>
     public ScheduledTaskGrain(
         ILogger<ScheduledTaskGrain> logger,
         IExceptionObserver exceptionObserver,
-        IClockService clockService, IHttpClientFactory httpClientFactory, IClusterClient clusterClient,
+        IClockService clockService, IClusterClient clusterClient,
+        IOptions<ScheduledTaskGrainOptions> options,
         [PersistentState(StateName.ScheduledTaskState, GrainStorageProviderName.ScheduledTaskState)]
         IPersistentState<ScheduledTaskState> task)
     {
@@ -59,8 +61,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         this.logger = logger;
         this.taskState = task;
         this.clockService = clockService;
-        this.httpClientFactory = httpClientFactory;
         this.clusterClient = clusterClient;
+        this.options = options;
     }
 
     private async ValueTask<bool> TryToInitializeReminder()
@@ -548,7 +550,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             Operation = TaskTriggerType.HttpTrigger,
         };
 
-        var client = this.httpClientFactory.CreateClient(ScheduledTaskHttpClientName);
+        var client = this.options.Value.ClientFactory.Invoke();
 
         StringContent? content = null;
 

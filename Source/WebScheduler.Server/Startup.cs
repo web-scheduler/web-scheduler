@@ -5,9 +5,12 @@ using WebScheduler.ConfigureOptions;
 using WebScheduler.Server.HealthChecks;
 using Serilog;
 using WebScheduler.Abstractions.Services;
+using WebScheduler.Abstractions.Options;
+
 public class Startup
 #pragma warning restore CA1724 // The type name conflicts with the namespace name 'Orleans.Runtime.Startup'
 {
+    private const string ScheduledTaskHttpClientName = "ScheduledTaskHttpClient";
     private readonly IConfiguration configuration;
     private readonly IWebHostEnvironment webHostEnvironment;
 
@@ -29,7 +32,8 @@ public class Startup
             .ConfigureOptions<ConfigureRequestLoggingOptions>()
             .AddRouting(options => options.LowercaseUrls = true)
             .AddCustomOpenTelemetryTracing(this.webHostEnvironment)
-            .AddHttpClient("ScheduledTaskHttpClient").Services
+            .AddHttpClient(ScheduledTaskHttpClientName).Services
+            .AddOptions<ScheduledTaskGrainOptions>().Configure<IServiceProvider>((c, s) => c.ClientFactory = () => s.GetRequiredService<IHttpClientFactory>().CreateClient(ScheduledTaskHttpClientName)).Services
             .AddHealthChecks()
             .AddCheck<ClusterHealthCheck>(nameof(ClusterHealthCheck))
             .AddCheck<GrainHealthCheck>(nameof(GrainHealthCheck))
