@@ -210,7 +210,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
     private void EnsureInitialTaskState()
     {
-        if (IsValidTenantIdValue(this.taskState.State.TenantIdString))
+        if (!IsValidTenantIdValue(this.taskState.State.TenantIdString))
         {
             throw new UnauthorizedAccessException("TenantId is empty.");
         }
@@ -648,7 +648,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
 
     private bool? IsOwnedInternal(string tenantId)
     {
-        if (IsValidTenantIdValue(this.taskState.State.TenantIdString))
+        if (!IsValidTenantIdValue(this.taskState.State.TenantIdString))
         {
             return null;
         }
@@ -661,7 +661,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
     /// </summary>
     /// <param name="tenantId"></param>
     /// <returns><value>true</value> if valid, <value>false</value> if invalid.</returns>
-    private static bool IsValidTenantIdValue(string? tenantId) => string.IsNullOrWhiteSpace(tenantId);
+    private static bool IsValidTenantIdValue(string? tenantId) => !string.IsNullOrWhiteSpace(tenantId);
 
     /// <summary>
     /// Handles migrating from Guid based TenantId to TenantIdString.
