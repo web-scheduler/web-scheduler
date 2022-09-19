@@ -25,9 +25,9 @@ internal static partial class SchedulerLoggerExtensions
     public static partial void ErrorExecutingHttpTrigger(this ILogger logger, Exception exception, string id);
     [LoggerMessage(
     EventId = 6203,
-    Level = LogLevel.Debug,
+    Level = LogLevel.Information,
     Message = "Executing HttpTrigger for {Id} Timed Out.")]
-    public static partial void ErrorExecutingHttpTriggerTrimedOut(this ILogger logger, Exception exception, string id);
+    public static partial void ErrorExecutingHttpTriggerTimedOut(this ILogger logger, Exception exception, string id);
     [LoggerMessage(
     EventId = 6204,
     Level = LogLevel.Debug,
