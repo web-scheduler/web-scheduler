@@ -8,6 +8,7 @@ using WebScheduler.Grains.Constants;
 using Orleans.Placement;
 using WebScheduler.Grains.History;
 using WebScheduler.Abstractions.Services;
+using Orleans.StorageProviderInterceptors.Abstractions;
 
 /// <summary>
 /// Records <see cref="ScheduledTaskTriggerHistoryGrain"/> history.
@@ -24,7 +25,7 @@ public class ScheduledTaskTriggerHistoryGrain : HistoryGrain<ScheduledTaskTrigge
     public ScheduledTaskTriggerHistoryGrain(
         IExceptionObserver exceptionObserver,
         ILogger<ScheduledTaskTriggerHistoryGrain> logger,
-        [PersistentState(StateName.ScheduledTaskTriggerHistory, GrainStorageProviderName.ScheduledTaskTriggerHistory)]
+        [StorageInterceptor(StateName.ScheduledTaskTriggerHistory, GrainStorageProviderName.ScheduledTaskTriggerHistory)]
         IPersistentState<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>> state) : base(exceptionObserver, logger, state)
     { }
 }
