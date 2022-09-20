@@ -18,6 +18,9 @@ using Orleans.Versions.Selector;
 using WebScheduler.Server.HealthChecks;
 using System.IO;
 using WebScheduler.Grains.Scheduler;
+using WebScheduler.Abstractions.Grains.Scheduler;
+using WebScheduler.Grains.Constants;
+using WebScheduler.Abstractions.Grains.History;
 
 public class Program
 {
@@ -106,6 +109,7 @@ public class Program
                         parts.AddApplicationPart(typeof(LocalHealthCheckGrain).Assembly).WithReferences()
                         .AddApplicationPart(typeof(ScheduledTaskGrain).Assembly).WithReferences()
                         .AddFromApplicationBaseDirectory().WithReferences())
+            .AddStorageInterceptors()
             .AddAdoNetGrainStorageAsDefault(options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
@@ -113,27 +117,61 @@ public class Program
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-            .AddAdoNetGrainStorage(Grains.Constants.GrainStorageProviderName.ScheduledTaskState, options =>
+            .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskState, options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-            .AddAdoNetGrainStorage(Grains.Constants.GrainStorageProviderName.ScheduledTaskMetadataHistory, options =>
+            .UseGenericStorageInterceptor<ScheduledTaskState>(GrainStorageProviderName.ScheduledTaskState, StateName.ScheduledTaskState, o =>
+            {
+                o.OnBeforeWriteStateFunc = (grainActivationContext, currentState) => new(false);
+                o.OnAfterWriteStateFunc= (grainActivationContext, currentState) => ValueTask.CompletedTask;
+
+                o.OnBeforeClearStateAsync = (grainActivationContext, currentState) => new(false);
+                o.OnAfterClearStateAsync= (grainActivationContext, currentState) => ValueTask.CompletedTask;
+
+                o.OnBeforeReadStateAsync = (grainActivationContext, currentState) => new(false);
+                o.OnAfterReadStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+            }) // simulate non-op
+            .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadataHistory, options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                     options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                     options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                     options.UseJsonFormat = true;
                 })
-            .AddAdoNetGrainStorage(Grains.Constants.GrainStorageProviderName.ScheduledTaskTriggerHistory, options =>
+            .UseGenericStorageInterceptor<HistoryState<ScheduledTaskMetadata, ScheduledTaskOperationType>>(GrainStorageProviderName.ScheduledTaskMetadataHistory, StateName.ScheduledTaskMetadataHistory, o =>
+            {
+                o.OnBeforeWriteStateFunc = (grainActivationContext, currentState) => new(false);
+                o.OnAfterWriteStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+
+                o.OnBeforeClearStateAsync = (grainActivationContext, currentState) => new(false);
+                o.OnAfterClearStateAsync = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+
+                o.OnBeforeReadStateAsync = (grainActivationContext, currentState) => new(false);
+                o.OnAfterReadStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+            }) // simulate non-op
+
+            .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskTriggerHistory, options =>
             {
                 options.Invariant = GetStorageOptions(context.Configuration).Invariant;
                 options.ConnectionString = GetStorageOptions(context.Configuration).ConnectionString;
                 options.ConfigureJsonSerializerSettings = ConfigureJsonSerializerSettings;
                 options.UseJsonFormat = true;
             })
+            .UseGenericStorageInterceptor<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>>(StateName.ScheduledTaskTriggerHistory, GrainStorageProviderName.ScheduledTaskTriggerHistory, o =>
+            {
+                o.OnBeforeWriteStateFunc = (grainActivationContext, currentState) => new(false);
+                o.OnAfterWriteStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+
+                o.OnBeforeClearStateAsync = (grainActivationContext, currentState) => new(false);
+                o.OnAfterClearStateAsync = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+
+                o.OnBeforeReadStateAsync = (grainActivationContext, currentState) => new(false);
+                o.OnAfterReadStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+            }) // simulate non-op
             .UseAdoNetReminderService(options =>
                 {
                     options.Invariant = GetStorageOptions(context.Configuration).Invariant;

@@ -19,6 +19,7 @@ using System;
 using WebScheduler.Grains.Diagnostics.Metrics;
 using Microsoft.Extensions.Options;
 using WebScheduler.Abstractions.Options;
+using Orleans.StorageProviderInterceptors.Abstractions;
 
 /// <summary>
 /// A scheduled task grain
@@ -54,7 +55,7 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
         IExceptionObserver exceptionObserver,
         IClockService clockService, IClusterClient clusterClient,
         IOptions<ScheduledTaskGrainOptions> options,
-        [PersistentState(StateName.ScheduledTaskState, GrainStorageProviderName.ScheduledTaskState)]
+        [StorageInterceptor(StateName.ScheduledTaskState, GrainStorageProviderName.ScheduledTaskState)]
         IPersistentState<ScheduledTaskState> task)
     {
         this.exceptionObserver = exceptionObserver;
