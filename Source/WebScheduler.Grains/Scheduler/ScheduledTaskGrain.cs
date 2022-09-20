@@ -331,6 +331,18 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
                 throw new ErrorUpdatingScheduledTaskException();
             }
         }
+        else if (!oldTaskState.IsEnabled && !this.IsTaskEnabled())
+        {// no reminder at all
+            var (_, result) = await this.WriteState();
+            if (!result)
+            {
+                this.RemoveItemFromHistoryBuffer(historyItem);
+
+                // restore in-memory state to before the changes
+                this.taskState.State.Task = oldTaskState;
+                throw new ErrorUpdatingScheduledTaskException();
+            }
+        }
 
         ScheduledTaskInstruments.ScheduledTaskUpdatedCounts.Add(1, new ReadOnlySpan<KeyValuePair<string, object?>>(new[] {
             new KeyValuePair<string, object?>("enabled", this.taskState.State.Task.IsEnabled),
@@ -473,6 +485,8 @@ public class ScheduledTaskGrain : Grain, IScheduledTaskGrain, IRemindable, ITena
             this.RemoveItemFromHistoryBuffer(historyItem);
             // restore in-memory state to before the changes
             this.taskState.State.Task = oldTaskState;
+            this.taskState.State.IsDeleted = false;
+
             throw new ErrorDeletingScheduledTaskException();
         }
 
