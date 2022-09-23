@@ -126,14 +126,14 @@ public class Program
                 })
             .UseGenericStorageInterceptor<ScheduledTaskState>(GrainStorageProviderName.ScheduledTaskState, StateName.ScheduledTaskState, o =>
             {
-                o.OnBeforeWriteStateFunc = (grainActivationContext, currentState) => new(false);
-                o.OnAfterWriteStateFunc= (grainActivationContext, currentState) => ValueTask.CompletedTask;
+                o.OnBeforeWriteStateFunc = (grainActivationContext, currentState) => new((false, (object?)null));
+                o.OnAfterWriteStateFunc = (grainActivationContext, currentState, sharedState) => ValueTask.CompletedTask;
 
-                o.OnBeforeClearStateAsync = (grainActivationContext, currentState) => new(false);
-                o.OnAfterClearStateAsync= (grainActivationContext, currentState) => ValueTask.CompletedTask;
+                o.OnBeforeClearStateAsync = (grainActivationContext, currentState) => new((false, (object?)null));
+                o.OnAfterClearStateAsync = (grainActivationContext, currentState, sharedState) => ValueTask.CompletedTask;
 
-                o.OnBeforeReadStateAsync = (grainActivationContext, currentState) => new(false);
-                o.OnAfterReadStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+                o.OnBeforeReadStateAsync = (grainActivationContext, currentState) => new((false, (object?)null));
+                o.OnAfterReadStateFunc = (grainActivationContext, currentState, sharedState) => ValueTask.CompletedTask;
             }) // simulate non-op
             .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskMetadataHistory, options =>
                 {
@@ -144,14 +144,14 @@ public class Program
                 })
             .UseGenericStorageInterceptor<HistoryState<ScheduledTaskMetadata, ScheduledTaskOperationType>>(GrainStorageProviderName.ScheduledTaskMetadataHistory, StateName.ScheduledTaskMetadataHistory, o =>
             {
-                o.OnBeforeWriteStateFunc = (grainActivationContext, currentState) => new(false);
-                o.OnAfterWriteStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+                o.OnBeforeWriteStateFunc = (grainActivationContext, currentState) => new((false, (object?)null));
+                o.OnAfterWriteStateFunc = (grainActivationContext, currentState, sharedState) => ValueTask.CompletedTask;
 
-                o.OnBeforeClearStateAsync = (grainActivationContext, currentState) => new(false);
-                o.OnAfterClearStateAsync = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+                o.OnBeforeClearStateAsync = (grainActivationContext, currentState) => new((false, (object?)null));
+                o.OnAfterClearStateAsync = (grainActivationContext, currentState, sharedState) => ValueTask.CompletedTask;
 
-                o.OnBeforeReadStateAsync = (grainActivationContext, currentState) => new(false);
-                o.OnAfterReadStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+                o.OnBeforeReadStateAsync = (grainActivationContext, currentState) => new((false, (object?)null));
+                o.OnAfterReadStateFunc = (grainActivationContext, currentState, sharedState) => ValueTask.CompletedTask;
             }) // simulate non-op
 
             .AddAdoNetGrainStorage(GrainStorageProviderName.ScheduledTaskTriggerHistory, options =>
@@ -163,14 +163,14 @@ public class Program
             })
             .UseGenericStorageInterceptor<HistoryState<ScheduledTaskTriggerHistory, TaskTriggerType>>(StateName.ScheduledTaskTriggerHistory, GrainStorageProviderName.ScheduledTaskTriggerHistory, o =>
             {
-                o.OnBeforeWriteStateFunc = (grainActivationContext, currentState) => new(false);
-                o.OnAfterWriteStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+                o.OnBeforeWriteStateFunc = (grainActivationContext, currentState) => new((false, (object?)null));
+                o.OnAfterWriteStateFunc = (grainActivationContext, currentState, sharedState) => ValueTask.CompletedTask;
 
-                o.OnBeforeClearStateAsync = (grainActivationContext, currentState) => new(false);
-                o.OnAfterClearStateAsync = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+                o.OnBeforeClearStateAsync = (grainActivationContext, currentState) => new((false, (object?)null));
+                o.OnAfterClearStateAsync = (grainActivationContext, currentState, sharedState) => ValueTask.CompletedTask;
 
-                o.OnBeforeReadStateAsync = (grainActivationContext, currentState) => new(false);
-                o.OnAfterReadStateFunc = (grainActivationContext, currentState) => ValueTask.CompletedTask;
+                o.OnBeforeReadStateAsync = (grainActivationContext, currentState) => new((false, (object?)null));
+                o.OnAfterReadStateFunc = (grainActivationContext, currentState, sharedState) => ValueTask.CompletedTask;
             }) // simulate non-op
             .UseAdoNetReminderService(options =>
                 {
