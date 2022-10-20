@@ -122,7 +122,7 @@ Task("DockerBuild")
         if(dockerfile.GetDirectory().GetDirectoryName().ToLower() == ".devcontainer") {
             return;
         }
-        
+
         var tag = $"{Environment.GetEnvironmentVariable("DOCKER_REGISTRY")}/{Environment.GetEnvironmentVariable("DOCKER_REPOSITORY_NAME")}/{dockerfile.GetDirectory().GetDirectoryName().ToLower().Replace(".", "-")}";
         Console.WriteLine($"Building for '{tag}:{version}'");
         var gitCommitSha = GetGitCommitSha();
@@ -134,7 +134,7 @@ Task("DockerBuild")
         // To stop using buildx remove the buildx parameter and the --platform, --progress switches.
         // See https://github.com/docker/buildx
 
-        StartProcess(
+        var exitCode = StartProcess(
             "docker",
             new ProcessArgumentBuilder()
                 .Append("buildx")
@@ -150,9 +150,13 @@ Task("DockerBuild")
                 .AppendSwitchQuoted("--file", dockerfile.ToString())
                 .Append(".")
                 .RenderSafe());
+        if (exitCode != 0)
+        {
+            throw new Exception($"Docker build failed with non zero exit code {exitCode}.");
+        }
 
         // If you'd rather not use buildx, then you can uncomment these lines instead.
-        // StartProcess(
+        // var exitCode = StartProcess(
         //     "docker",
         //     new ProcessArgumentBuilder()
         //         .Append("build")
@@ -164,16 +168,25 @@ Task("DockerBuild")
         //         .AppendSwitchQuoted("--file", dockerfile.ToString())
         //         .Append(".")
         //         .RenderSafe());
+        // if (exitCode != 0)
+        // {
+        //     throw new Exception($"Docker build failed with non zero exit code {exitCode}.");
+        // }
+        //
         // if (push)
         // {
-        //     StartProcess(
+        //     var pushExitCode = StartProcess(
         //         "docker",
         //         new ProcessArgumentBuilder()
         //             .AppendSwitchQuoted("push", $"{tag}:{version}")
         //             .RenderSafe());
+        //     if (pushExitCode != 0)
+        //     {
+        //         throw new Exception($"Docker build failed with non zero exit code {pushExitCode}.");
+        //     }
         // }
 
-      
+
     });
 string GetVersion()
 {
@@ -181,7 +194,7 @@ string GetVersion()
     var directoryBuildPropsDocument = System.Xml.Linq.XDocument.Load(directoryBuildPropsFilePath);
     var preReleasePhase = directoryBuildPropsDocument.Descendants("MinVerDefaultPreReleasePhase").Single().Value;
 
-    StartProcess(
+    var exitCode = StartProcess(
         "dotnet",
         new ProcessSettings()
             .WithArguments(x => x
@@ -189,17 +202,28 @@ string GetVersion()
                 // .AppendSwitch("--default-pre-release-phase", preReleasePhase)
             .SetRedirectStandardOutput(true),
             out var versionLines);
+
+    if (exitCode != 0)
+    {
+        throw new Exception($"dotnet minver failed with non zero exit code {exitCode}.");
+    }
+
     return versionLines.LastOrDefault();
 }
 
 string GetGitCommitSha()
 {
-    StartProcess(
+    var exitCode = StartProcess(
         "git",
         new ProcessSettings()
             .WithArguments(x => x.Append("rev-parse HEAD"))
             .SetRedirectStandardOutput(true),
         out var shaLines);
+
+    if (exitCode != 0)
+    {
+        throw new Exception($"git rev-parse failed with non zero exit code {exitCode}.");
+    }
     return shaLines.LastOrDefault();
 }
 Task("Default")
