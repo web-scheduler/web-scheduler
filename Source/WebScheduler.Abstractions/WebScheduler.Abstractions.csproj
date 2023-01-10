@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup Label="Build">
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <DefineConstants>$(DefineConstants);</DefineConstants>
     <IsTrimmable Condition="'$(IsTrimmable)' == 'true'">true</IsTrimmable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
