@@ -5,7 +5,7 @@
 
 # Base image used by Visual Studio at development time
 # (See https://docs.microsoft.com/en-us/visualstudio/containers/container-msbuild-properties)
-FROM mcr.microsoft.com/dotnet/aspnet:6.0.5-alpine3.15-amd64 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:7.0-alpine3.17-amd64 AS base
 # Open Container Initiative (OCI) labels (See https://github.com/opencontainers/image-spec/blob/master/annotations.md).
 LABEL org.opencontainers.image.title="Web Scheduler Data Migrator" \
     org.opencontainers.image.description="Data Migrator for Web Scheduler" \
