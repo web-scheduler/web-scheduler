@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -60,10 +60,6 @@ namespace WebScheduler.DataMigrations.Migrations
                 table: "OrleansStorage");
 
             migrationBuilder.DropColumn(
-                name: "IsScheduledTaskDeleted",
-                table: "OrleansStorage");
-
-            migrationBuilder.DropColumn(
                 name: "IsScheduledTaskEnabled",
                 table: "OrleansStorage");
 
@@ -74,6 +70,11 @@ namespace WebScheduler.DataMigrations.Migrations
             migrationBuilder.DropColumn(
                 name: "TenantId",
                 table: "OrleansStorage");
+
+            // This has to go last because of the column dependency in ScheduledTaskCreatedAt.
+            migrationBuilder.DropColumn(
+               name: "IsScheduledTaskDeleted",
+               table: "OrleansStorage");
         }
     }
 }
