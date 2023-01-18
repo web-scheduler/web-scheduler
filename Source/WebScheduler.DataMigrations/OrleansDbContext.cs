@@ -184,11 +184,11 @@ public class OrleansDbContext : DbContext
                       """, stored: true);
 
                 entity.Property(e => e.ScheduledTaskCreatedAt)
-                    .HasColumnType("datetime")
+                    .HasColumnType("DATETIME(6)")
                     // ScheduledTaskCreatedAt is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState
                     .HasComputedColumnSql("""
                       CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN
-                              JSON_EXTRACT(PayloadJson, '$.task.createdAt')
+                              STR_TO_DATE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')), 'Z','+0000'), '%Y-%m-%dT%H:%i:%s.%f+0000')
                       END
                       """, stored: true);
 

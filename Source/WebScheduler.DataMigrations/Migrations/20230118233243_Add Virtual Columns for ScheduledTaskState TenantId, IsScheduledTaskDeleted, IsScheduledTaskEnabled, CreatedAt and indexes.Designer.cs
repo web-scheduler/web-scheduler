@@ -12,7 +12,7 @@ using WebScheduler.DataMigrations;
 namespace WebScheduler.DataMigrations.Migrations
 {
     [DbContext(typeof(OrleansDbContext))]
-    [Migration("20230118224213_Add Virtual Columns for ScheduledTaskState TenantId, IsScheduledTaskDeleted, IsScheduledTaskEnabled, CreatedAt and indexes")]
+    [Migration("20230118233243_Add Virtual Columns for ScheduledTaskState TenantId, IsScheduledTaskDeleted, IsScheduledTaskEnabled, CreatedAt and indexes")]
     partial class AddVirtualColumnsforScheduledTaskStateTenantIdIsScheduledTaskDeletedIsScheduledTaskEnabledCreatedAtandindexes
     {
         /// <inheritdoc />
@@ -218,8 +218,8 @@ namespace WebScheduler.DataMigrations.Migrations
 
                     b.Property<DateTime?>("ScheduledTaskCreatedAt")
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("datetime")
-                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        JSON_EXTRACT(PayloadJson, '$.task.createdAt')\r\nEND", true);
+                        .HasColumnType("DATETIME(6)")
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        STR_TO_DATE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')), 'Z','+0000'), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\nEND", true);
 
                     b.Property<string>("ServiceId")
                         .IsRequired()
