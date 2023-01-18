@@ -133,8 +133,8 @@ namespace WebScheduler.DataMigrations.CompiledModels
                 valueGenerated: ValueGenerated.OnAddOrUpdate,
                 beforeSaveBehavior: PropertySaveBehavior.Ignore,
                 afterSaveBehavior: PropertySaveBehavior.Ignore);
-            scheduledTaskCreatedAt.AddAnnotation("Relational:ColumnType", "datetime");
-            scheduledTaskCreatedAt.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        JSON_EXTRACT(PayloadJson, '$.task.createdAt')\r\nEND");
+            scheduledTaskCreatedAt.AddAnnotation("Relational:ColumnType", "DATETIME(6)");
+            scheduledTaskCreatedAt.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        STR_TO_DATE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')), 'Z','+0000'), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\nEND");
             scheduledTaskCreatedAt.AddAnnotation("Relational:IsStored", true);
 
             var serviceId = runtimeEntityType.AddProperty(
