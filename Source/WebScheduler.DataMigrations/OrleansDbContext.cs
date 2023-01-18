@@ -144,7 +144,7 @@ public class OrleansDbContext : DbContext
                     .HasMaxLength(255)
                     .UseCollation("utf8_general_ci")
                     .HasCharSet("utf8")
-                    // TenantId is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState
+                    // TenantId is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState.
                     .HasComputedColumnSql("""
                     CASE WHEN GrainTypeHash = 2108290596 THEN
                         CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, "$.tenantId")) IS NOT NULL THEN 
