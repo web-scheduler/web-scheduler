@@ -139,6 +139,58 @@ public class OrleansDbContext : DbContext
                     .HasMaxLength(150)
                     .UseCollation("utf8_general_ci")
                     .HasCharSet("utf8");
+
+                entity.Property(e => e.TenantId)
+                    .HasMaxLength(255)
+                    .UseCollation("utf8_general_ci")
+                    .HasCharSet("utf8")
+                    // TenantId is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState
+                    .HasComputedColumnSql("""
+                    CASE WHEN GrainTypeHash = 2108290596 THEN
+                        CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, "$.tenantId")) IS NOT NULL THEN 
+                            JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, "$.tenantId"))
+                        ELSE 
+                            JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, "$.tenantIdString"))
+                        END 
+                    END
+                    """, stored: true);
+
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_TenantId");
+
+                entity.Property(e => e.IsScheduledTaskDeleted)
+                    .HasColumnType("bit")
+                    // IsDeleted is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState
+                    // The json serializer optimizes the output by not emitting default values for properties. boolean default is false, so is null in DB (no json for isDeleted).
+                    .HasComputedColumnSql("""
+                      CASE WHEN GrainTypeHash = 2108290596 THEN
+                          CASE WHEN JSON_EXTRACT(PayloadJson, "$.isDeleted") IS NOT NULL THEN 
+                              true
+                          ELSE 
+                              false
+                          END 
+                      END
+                      """, stored: true);
+
+                entity.HasIndex(e => e.IsScheduledTaskDeleted)
+                    .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_IsScheduledTaskDeleted");
+
+                entity.Property(e => e.IsScheduledTaskEnabled)
+                    .HasColumnType("bit")
+                    // IsDeleted is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState
+                    // The json serializer optimizes the output by not emitting default values for properties. boolean default is false, so is null in DB (no json for isEnabled).
+                    .HasComputedColumnSql("""
+                      CASE WHEN GrainTypeHash = 2108290596 THEN
+                          CASE WHEN JSON_EXTRACT(PayloadJson, "$.task.isEnabled") IS NOT NULL THEN 
+                              true
+                          ELSE 
+                              false
+                          END 
+                      END
+                      """, stored: true);
+
+                entity.HasIndex(e => e.IsScheduledTaskEnabled)
+                    .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_IsScheduledTaskEnabled");
             });
 
         base.OnModelCreating(modelBuilder);
