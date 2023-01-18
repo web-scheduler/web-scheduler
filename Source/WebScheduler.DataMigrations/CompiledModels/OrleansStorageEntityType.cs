@@ -78,7 +78,7 @@ namespace WebScheduler.DataMigrations.CompiledModels
                 beforeSaveBehavior: PropertySaveBehavior.Ignore,
                 afterSaveBehavior: PropertySaveBehavior.Ignore);
             isScheduledTaskDeleted.AddAnnotation("Relational:ColumnType", "bit");
-            isScheduledTaskDeleted.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, \"$.isDeleted\") IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND");
+            isScheduledTaskDeleted.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, '$.isDeleted') IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND");
             isScheduledTaskDeleted.AddAnnotation("Relational:IsStored", true);
 
             var isScheduledTaskEnabled = runtimeEntityType.AddProperty(
@@ -91,7 +91,7 @@ namespace WebScheduler.DataMigrations.CompiledModels
                 beforeSaveBehavior: PropertySaveBehavior.Ignore,
                 afterSaveBehavior: PropertySaveBehavior.Ignore);
             isScheduledTaskEnabled.AddAnnotation("Relational:ColumnType", "bit");
-            isScheduledTaskEnabled.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, \"$.task.isEnabled\") IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND");
+            isScheduledTaskEnabled.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, '$.task.isEnabled') IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND");
             isScheduledTaskEnabled.AddAnnotation("Relational:IsStored", true);
 
             var modifiedOn = runtimeEntityType.AddProperty(
@@ -124,6 +124,19 @@ namespace WebScheduler.DataMigrations.CompiledModels
                 fieldInfo: typeof(OrleansStorage).GetField("<PayloadXml>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 nullable: true);
 
+            var scheduledTaskCreatedAt = runtimeEntityType.AddProperty(
+                "ScheduledTaskCreatedAt",
+                typeof(DateTime?),
+                propertyInfo: typeof(OrleansStorage).GetProperty("ScheduledTaskCreatedAt", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                fieldInfo: typeof(OrleansStorage).GetField("<ScheduledTaskCreatedAt>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                nullable: true,
+                valueGenerated: ValueGenerated.OnAddOrUpdate,
+                beforeSaveBehavior: PropertySaveBehavior.Ignore,
+                afterSaveBehavior: PropertySaveBehavior.Ignore);
+            scheduledTaskCreatedAt.AddAnnotation("Relational:ColumnType", "datetime");
+            scheduledTaskCreatedAt.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        JSON_EXTRACT(PayloadJson, '$.task.createdAt')\r\nEND");
+            scheduledTaskCreatedAt.AddAnnotation("Relational:IsStored", true);
+
             var serviceId = runtimeEntityType.AddProperty(
                 "ServiceId",
                 typeof(string),
@@ -143,7 +156,7 @@ namespace WebScheduler.DataMigrations.CompiledModels
                 afterSaveBehavior: PropertySaveBehavior.Ignore,
                 maxLength: 255);
             tenantId.AddAnnotation("MySql:CharSet", "utf8");
-            tenantId.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, \"$.tenantId\")) IS NOT NULL THEN \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, \"$.tenantId\"))\r\n    ELSE \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, \"$.tenantIdString\"))\r\n    END \r\nEND");
+            tenantId.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId')) IS NOT NULL THEN \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId'))\r\n    ELSE \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantIdString'))\r\n    END \r\nEND");
             tenantId.AddAnnotation("Relational:IsStored", true);
 
             var version = runtimeEntityType.AddProperty(
@@ -159,20 +172,12 @@ namespace WebScheduler.DataMigrations.CompiledModels
             key.AddAnnotation("Relational:Name", "PRIMARY");
 
             var index = runtimeEntityType.AddIndex(
-                new[] { isScheduledTaskDeleted });
-            index.AddAnnotation("Relational:Name", "IX_OrleansStorage_ScheduledTaskState_IsScheduledTaskDeleted");
+                new[] { grainIdHash, grainTypeHash });
+            index.AddAnnotation("Relational:Name", "IX_OrleansStorage");
 
             var index0 = runtimeEntityType.AddIndex(
-                new[] { isScheduledTaskEnabled });
-            index0.AddAnnotation("Relational:Name", "IX_OrleansStorage_ScheduledTaskState_IsScheduledTaskEnabled");
-
-            var index1 = runtimeEntityType.AddIndex(
-                new[] { tenantId });
-            index1.AddAnnotation("Relational:Name", "IX_OrleansStorage_ScheduledTaskState_TenantId");
-
-            var index2 = runtimeEntityType.AddIndex(
-                new[] { grainIdHash, grainTypeHash });
-            index2.AddAnnotation("Relational:Name", "IX_OrleansStorage");
+                new[] { tenantId, isScheduledTaskDeleted, isScheduledTaskEnabled });
+            index0.AddAnnotation("Relational:Name", "IX_OrleansStorage_ScheduledTaskState_TenantId_IsScheduledTaskEnabled_IsScheduledTaskEnabled");
 
             return runtimeEntityType;
         }

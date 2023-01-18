@@ -19,4 +19,6 @@ public class OrleansStorage
     public string? TenantId { get; set; }
     public bool? IsScheduledTaskDeleted { get; set; }
     public bool? IsScheduledTaskEnabled { get; set; }
+
+    public DateTime? ScheduledTaskCreatedAt { get; set; }
 }

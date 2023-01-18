@@ -194,12 +194,12 @@ namespace WebScheduler.DataMigrations.Migrations
                     b.Property<ulong?>("IsScheduledTaskDeleted")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bit")
-                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, \"$.isDeleted\") IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND", true);
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, '$.isDeleted') IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND", true);
 
                     b.Property<ulong?>("IsScheduledTaskEnabled")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bit")
-                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, \"$.task.isEnabled\") IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND", true);
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, '$.task.isEnabled') IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND", true);
 
                     b.Property<DateTime>("ModifiedOn")
                         .HasColumnType("datetime");
@@ -213,6 +213,11 @@ namespace WebScheduler.DataMigrations.Migrations
                     b.Property<string>("PayloadXml")
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime?>("ScheduledTaskCreatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime")
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        JSON_EXTRACT(PayloadJson, '$.task.createdAt')\r\nEND", true);
+
                     b.Property<string>("ServiceId")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -225,7 +230,7 @@ namespace WebScheduler.DataMigrations.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)")
-                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, \"$.tenantId\")) IS NOT NULL THEN \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, \"$.tenantId\"))\r\n    ELSE \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, \"$.tenantIdString\"))\r\n    END \r\nEND", true)
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId')) IS NOT NULL THEN \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId'))\r\n    ELSE \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantIdString'))\r\n    END \r\nEND", true)
                         .UseCollation("utf8_general_ci");
 
                     MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("TenantId"), "utf8");
@@ -236,17 +241,11 @@ namespace WebScheduler.DataMigrations.Migrations
                     b.HasKey("Id", "GrainIdHash", "GrainTypeHash")
                         .HasName("PRIMARY");
 
-                    b.HasIndex("IsScheduledTaskDeleted")
-                        .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_IsScheduledTaskDeleted");
-
-                    b.HasIndex("IsScheduledTaskEnabled")
-                        .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_IsScheduledTaskEnabled");
-
-                    b.HasIndex("TenantId")
-                        .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_TenantId");
-
                     b.HasIndex("GrainIdHash", "GrainTypeHash")
                         .HasDatabaseName("IX_OrleansStorage");
+
+                    b.HasIndex("TenantId", "IsScheduledTaskDeleted", "IsScheduledTaskEnabled")
+                        .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_TenantId_IsScheduledTaskEnabled_IsScheduledTaskEnabled");
 
                     b.ToTable("OrleansStorage", (string)null);
                 });
