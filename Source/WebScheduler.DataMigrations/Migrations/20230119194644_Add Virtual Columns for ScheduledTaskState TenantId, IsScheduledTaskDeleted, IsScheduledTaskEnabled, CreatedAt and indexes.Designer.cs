@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebScheduler.DataMigrations;
 
@@ -11,9 +12,11 @@ using WebScheduler.DataMigrations;
 namespace WebScheduler.DataMigrations.Migrations
 {
     [DbContext(typeof(OrleansDbContext))]
-    partial class OrleansDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230119194644_Add Virtual Columns for ScheduledTaskState TenantId, IsScheduledTaskDeleted, IsScheduledTaskEnabled, CreatedAt and indexes")]
+    partial class AddVirtualColumnsforScheduledTaskStateTenantIdIsScheduledTaskDeletedIsScheduledTaskEnabledCreatedAtandindexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
