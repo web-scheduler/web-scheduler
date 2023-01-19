@@ -12,7 +12,7 @@ using WebScheduler.DataMigrations;
 namespace WebScheduler.DataMigrations.Migrations
 {
     [DbContext(typeof(OrleansDbContext))]
-    [Migration("20230118233243_Add Virtual Columns for ScheduledTaskState TenantId, IsScheduledTaskDeleted, IsScheduledTaskEnabled, CreatedAt and indexes")]
+    [Migration("20230119194644_Add Virtual Columns for ScheduledTaskState TenantId, IsScheduledTaskDeleted, IsScheduledTaskEnabled, CreatedAt and indexes")]
     partial class AddVirtualColumnsforScheduledTaskStateTenantIdIsScheduledTaskDeletedIsScheduledTaskEnabledCreatedAtandindexes
     {
         /// <inheritdoc />
@@ -194,15 +194,15 @@ namespace WebScheduler.DataMigrations.Migrations
 
                     MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("GrainTypeString"), "utf8");
 
-                    b.Property<ulong?>("IsScheduledTaskDeleted")
+                    b.Property<bool?>("IsScheduledTaskDeleted")
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bit")
-                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, '$.isDeleted') IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND", true);
+                        .HasColumnType("tinyint(1)")
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, '$.isDeleted') IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND", false);
 
-                    b.Property<ulong?>("IsScheduledTaskEnabled")
+                    b.Property<bool?>("IsScheduledTaskEnabled")
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bit")
-                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, '$.task.isEnabled') IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND", true);
+                        .HasColumnType("tinyint(1)")
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_EXTRACT(PayloadJson, '$.task.isEnabled') IS NOT NULL THEN \r\n        true\r\n    ELSE \r\n        false\r\n    END \r\nEND", false);
 
                     b.Property<DateTime>("ModifiedOn")
                         .HasColumnType("datetime");
@@ -219,7 +219,7 @@ namespace WebScheduler.DataMigrations.Migrations
                     b.Property<DateTime?>("ScheduledTaskCreatedAt")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("DATETIME(6)")
-                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        STR_TO_DATE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')), 'Z','+0000'), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\nEND", true);
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        STR_TO_DATE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')), 'Z','+0000'), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\nEND", false);
 
                     b.Property<string>("ServiceId")
                         .IsRequired()
@@ -233,7 +233,7 @@ namespace WebScheduler.DataMigrations.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)")
-                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId')) IS NOT NULL THEN \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId'))\r\n    ELSE \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantIdString'))\r\n    END \r\nEND", true)
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 THEN\r\n    CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId')) IS NOT NULL THEN \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId'))\r\n    ELSE \r\n        JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantIdString'))\r\n    END \r\nEND", false)
                         .UseCollation("utf8_general_ci");
 
                     MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("TenantId"), "utf8");
@@ -248,7 +248,7 @@ namespace WebScheduler.DataMigrations.Migrations
                         .HasDatabaseName("IX_OrleansStorage");
 
                     b.HasIndex("TenantId", "IsScheduledTaskDeleted", "IsScheduledTaskEnabled")
-                        .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_TenantId_IsScheduledTaskEnabled_IsScheduledTaskEnabled");
+                        .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_TenantId_IsDeletedEnabled");
 
                     b.ToTable("OrleansStorage", (string)null);
                 });
