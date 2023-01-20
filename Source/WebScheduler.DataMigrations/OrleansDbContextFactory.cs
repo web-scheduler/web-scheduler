@@ -1,8 +1,6 @@
 namespace WebScheduler.DataMigrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Options;
-using WebScheduler.DataMigrations.CompiledModels;
 
 /// <summary>
 /// Used by EF tools at design time to create migrations.
@@ -24,10 +22,6 @@ public class OrleansDbContextFactory : IDesignTimeDbContextFactory<OrleansDbCont
            .UseMySql(connectionString,
                         ServerVersion.AutoDetect(connectionString),
                         dbOpts => dbOpts.MigrationsAssembly(typeof(OrleansDbContextFactory).Assembly.FullName).EnableRetryOnFailure());
-
-        // Use a precompiled model for performance gains.
-        optionsBuilder.UseModel(OrleansDbContextModel.Instance);
-
         return new OrleansDbContext(optionsBuilder.Options);
     }
 }
