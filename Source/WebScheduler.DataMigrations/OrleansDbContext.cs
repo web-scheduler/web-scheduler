@@ -139,6 +139,79 @@ public class OrleansDbContext : DbContext
                     .HasMaxLength(150)
                     .UseCollation("utf8_general_ci")
                     .HasCharSet("utf8");
+
+                entity.Property(e => e.TenantId)
+                    .HasMaxLength(255)
+                    .UseCollation("utf8_general_ci")
+                    .HasCharSet("utf8")
+                    // TenantId is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState.
+                    .HasComputedColumnSql("""
+                    CASE WHEN GrainTypeHash = 2108290596 THEN
+                        CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId')) IS NOT NULL THEN 
+                            JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantId'))
+                        ELSE 
+                            JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.tenantIdString'))
+                        END 
+                    END
+                    """, stored: false);
+
+                entity.Property(e => e.IsScheduledTaskDeleted)
+                    .HasColumnType("tinyint(1)")
+                    // IsDeleted is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState
+                    // The json serializer optimizes the output by not emitting default values for properties. boolean default is false, so is null in DB (no json for isDeleted).
+                    .HasComputedColumnSql("""
+                      CASE WHEN GrainTypeHash = 2108290596 THEN
+                          CASE WHEN JSON_EXTRACT(PayloadJson, '$.isDeleted') IS NOT NULL THEN 
+                              true
+                          ELSE 
+                              false
+                          END 
+                      END
+                      """, stored: false);
+
+                entity.Property(e => e.IsScheduledTaskEnabled)
+                    .HasColumnType("tinyint(1)")
+                    // IsDeleted is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState
+                    // The json serializer optimizes the output by not emitting default values for properties. boolean default is false, so is null in DB (no json for isEnabled).
+                    .HasComputedColumnSql("""
+                      CASE WHEN GrainTypeHash = 2108290596 THEN
+                          CASE WHEN JSON_EXTRACT(PayloadJson, '$.task.isEnabled') IS NOT NULL THEN 
+                              true
+                          ELSE 
+                              false
+                          END 
+                      END
+                      """, stored: false);
+
+                entity.Property(e => e.ScheduledTaskCreatedAt)
+                    .HasColumnType("DATETIME(6)")
+                    // ScheduledTaskCreatedAt is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState
+                    // We have max 7 microsecond precision in the json; mysql has a max of 6. the json is not padded so we must trim. We also remove the trailing Z, '2022-09-28T07:01:46.5644758'
+                    .HasComputedColumnSql("""
+                      CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN
+                            CASE LENGTH(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')))
+                                WHEN 28 -- 7 microsecond precision  + Z, intentionally 26
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),26), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 27
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),26), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 26
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),25), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 25
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),24), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 21
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),20), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 22
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),21), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 23
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),22), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 24
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),23), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                            END
+                        END
+                      """, stored: false);
+
+                entity.HasIndex(e => new { e.TenantId, e.IsScheduledTaskDeleted, e.IsScheduledTaskEnabled, e.ScheduledTaskCreatedAt })
+                    .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_TenantId_IsDeletedEnabled");
             });
 
         base.OnModelCreating(modelBuilder);

@@ -16,4 +16,9 @@ public class OrleansStorage
     public string? PayloadJson { get; set; }
     public DateTime ModifiedOn { get; set; }
     public int? Version { get; set; }
+    public string? TenantId { get; set; }
+    public bool? IsScheduledTaskDeleted { get; set; }
+    public bool? IsScheduledTaskEnabled { get; set; }
+
+    public DateTime? ScheduledTaskCreatedAt { get; set; }
 }
