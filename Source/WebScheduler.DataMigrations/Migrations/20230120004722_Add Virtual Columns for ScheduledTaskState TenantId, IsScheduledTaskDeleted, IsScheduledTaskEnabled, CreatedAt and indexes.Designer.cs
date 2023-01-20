@@ -12,7 +12,7 @@ using WebScheduler.DataMigrations;
 namespace WebScheduler.DataMigrations.Migrations
 {
     [DbContext(typeof(OrleansDbContext))]
-    [Migration("20230119194644_Add Virtual Columns for ScheduledTaskState TenantId, IsScheduledTaskDeleted, IsScheduledTaskEnabled, CreatedAt and indexes")]
+    [Migration("20230120004722_Add Virtual Columns for ScheduledTaskState TenantId, IsScheduledTaskDeleted, IsScheduledTaskEnabled, CreatedAt and indexes")]
     partial class AddVirtualColumnsforScheduledTaskStateTenantIdIsScheduledTaskDeletedIsScheduledTaskEnabledCreatedAtandindexes
     {
         /// <inheritdoc />
@@ -219,7 +219,7 @@ namespace WebScheduler.DataMigrations.Migrations
                     b.Property<DateTime?>("ScheduledTaskCreatedAt")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("DATETIME(6)")
-                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        STR_TO_DATE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')), 'Z','+0000'), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\nEND", false);
+                        .HasComputedColumnSql("CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n      CASE LENGTH(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')))\r\n          WHEN 28 -- 7 microsecond precision  + Z, intentionally 26\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),26), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 27\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),26), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 26\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),25), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 25\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),24), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 21\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),20), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 22\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),21), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 23\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),22), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 24\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),23), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n      END\r\n  END", false);
 
                     b.Property<string>("ServiceId")
                         .IsRequired()
@@ -247,7 +247,7 @@ namespace WebScheduler.DataMigrations.Migrations
                     b.HasIndex("GrainIdHash", "GrainTypeHash")
                         .HasDatabaseName("IX_OrleansStorage");
 
-                    b.HasIndex("TenantId", "IsScheduledTaskDeleted", "IsScheduledTaskEnabled")
+                    b.HasIndex("TenantId", "IsScheduledTaskDeleted", "IsScheduledTaskEnabled", "ScheduledTaskCreatedAt")
                         .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_TenantId_IsDeletedEnabled");
 
                     b.ToTable("OrleansStorage", (string)null);

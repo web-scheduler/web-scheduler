@@ -134,7 +134,7 @@ namespace WebScheduler.DataMigrations.CompiledModels
                 beforeSaveBehavior: PropertySaveBehavior.Ignore,
                 afterSaveBehavior: PropertySaveBehavior.Ignore);
             scheduledTaskCreatedAt.AddAnnotation("Relational:ColumnType", "DATETIME(6)");
-            scheduledTaskCreatedAt.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n        STR_TO_DATE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')), 'Z','+0000'), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\nEND");
+            scheduledTaskCreatedAt.AddAnnotation("Relational:ComputedColumnSql", "CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN\r\n      CASE LENGTH(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')))\r\n          WHEN 28 -- 7 microsecond precision  + Z, intentionally 26\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),26), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 27\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),26), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 26\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),25), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 25\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),24), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 21\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),20), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 22\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),21), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 23\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),22), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n          WHEN 24\r\n              THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),23), '%Y-%m-%dT%H:%i:%s.%f+0000')\r\n      END\r\n  END");
             scheduledTaskCreatedAt.AddAnnotation("Relational:IsStored", false);
 
             var serviceId = runtimeEntityType.AddProperty(
@@ -176,7 +176,7 @@ namespace WebScheduler.DataMigrations.CompiledModels
             index.AddAnnotation("Relational:Name", "IX_OrleansStorage");
 
             var index0 = runtimeEntityType.AddIndex(
-                new[] { tenantId, isScheduledTaskDeleted, isScheduledTaskEnabled });
+                new[] { tenantId, isScheduledTaskDeleted, isScheduledTaskEnabled, scheduledTaskCreatedAt });
             index0.AddAnnotation("Relational:Name", "IX_OrleansStorage_ScheduledTaskState_TenantId_IsDeletedEnabled");
 
             return runtimeEntityType;

@@ -186,13 +186,31 @@ public class OrleansDbContext : DbContext
                 entity.Property(e => e.ScheduledTaskCreatedAt)
                     .HasColumnType("DATETIME(6)")
                     // ScheduledTaskCreatedAt is only valid for the ScheduledTaskState, all queries against other grain states are rooted at the WebScheduler.Grains.Scheduler.ScheduledTaskGrain,WebScheduler.Grains.ScheduledTaskState
+                    // We have max 7 microsecond precision in the json; mysql has a max of 6. the json is not padded so we must trim. We also remove the trailing Z, '2022-09-28T07:01:46.5644758'
                     .HasComputedColumnSql("""
                       CASE WHEN GrainTypeHash = 2108290596 AND IsScheduledTaskDeleted = false THEN
-                              STR_TO_DATE(REPLACE(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')), 'Z','+0000'), '%Y-%m-%dT%H:%i:%s.%f+0000')
-                      END
+                            CASE LENGTH(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')))
+                                WHEN 28 -- 7 microsecond precision  + Z, intentionally 26
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),26), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 27
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),26), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 26
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),25), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 25
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),24), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 21
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),20), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 22
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),21), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 23
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),22), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                                WHEN 24
+                                    THEN STR_TO_DATE(LEFT(JSON_UNQUOTE(JSON_EXTRACT(PayloadJson, '$.task.createdAt')),23), '%Y-%m-%dT%H:%i:%s.%f+0000')
+                            END
+                        END
                       """, stored: false);
 
-                entity.HasIndex(e => new { e.TenantId, e.IsScheduledTaskDeleted, e.IsScheduledTaskEnabled })
+                entity.HasIndex(e => new { e.TenantId, e.IsScheduledTaskDeleted, e.IsScheduledTaskEnabled, e.ScheduledTaskCreatedAt })
                     .HasDatabaseName("IX_OrleansStorage_ScheduledTaskState_TenantId_IsDeletedEnabled");
             });
 
