@@ -89,4 +89,14 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include=".bin\System.Net.NetworkInformation.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Net.NetworkInformation">
+      <HintPath>.bin\System.Net.NetworkInformation.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
