@@ -8,21 +8,22 @@ internal static partial class SchedulerLoggerExtensions
 {
     [LoggerMessage(
         EventId = 6000,
-        Level = LogLevel.Warning,
+        Level = LogLevel.Information,
         Message = "Scheduled task {Id} already exists.")]
     public static partial void ScheduledTaskAlreadyExists(this ILogger logger, string id);
 
     [LoggerMessage(
         EventId = 6001,
-        Level = LogLevel.Warning,
+        Level = LogLevel.Information,
         Message = "Scheduled task {Id} doesn't exist.")]
     public static partial void ScheduledTaskNotFound(this ILogger logger, string id);
 
     [LoggerMessage(
         EventId = 6202,
-        Level = LogLevel.Debug,
+        Level = LogLevel.Error,
         Message = "Error executing HttpTrigger for {Id}.")]
     public static partial void ErrorExecutingHttpTrigger(this ILogger logger, Exception exception, string id);
+
     [LoggerMessage(
     EventId = 6203,
     Level = LogLevel.Information,
@@ -30,19 +31,19 @@ internal static partial class SchedulerLoggerExtensions
     public static partial void ErrorExecutingHttpTriggerTimedOut(this ILogger logger, Exception exception, string id);
     [LoggerMessage(
     EventId = 6204,
-    Level = LogLevel.Debug,
+    Level = LogLevel.Error,
     Message = "Failed to get reminder for {Id}.")]
     public static partial void FailedToGetReminder(this ILogger logger, Exception exception, string id);
 
     [LoggerMessage(
     EventId = 6205,
-    Level = LogLevel.Debug,
+    Level = LogLevel.Error,
     Message = "Failed to register reminder for {Id}.")]
     public static partial void FailedToRegisterReminder(this ILogger logger, Exception exception, string id);
 
     [LoggerMessage(
     EventId = 6206,
-    Level = LogLevel.Debug,
+    Level = LogLevel.Error,
     Message = "Failed to unregister reminder for {Id}.")]
     public static partial void FailedToUnRegisterReminder(this ILogger logger, Exception exception, string id);
 
