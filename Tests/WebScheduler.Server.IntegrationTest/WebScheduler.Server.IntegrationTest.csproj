@@ -19,7 +19,7 @@
     </PackageReference>
     <PackageReference Include="FluentAssertions.AspNetCore.Mvc" Version="4.2.0" />
     <PackageReference Include="FluentAssertions.Web" Version="1.2.5" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
     <PackageReference Include="Microsoft.Orleans.TestingHost" Version="3.6.5" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.1.0" />
     <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
@@ -43,11 +43,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.4.33">
+    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.5.22">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Update="MinVer" Version="4.2.0" />
+    <PackageReference Update="MinVer" Version="4.3.0" />
     <PackageReference Update="Roslynator.Analyzers" Version="4.2.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
