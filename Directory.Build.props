@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Versioning">
-    <MinVerDefaultPreReleasePhase>alpha</MinVerDefaultPreReleasePhase>
+    <MinVerDefaultPreReleaseIdentifiers>preview.0</MinVerDefaultPreReleaseIdentifiers>
     <MinVerVerbosity>normal</MinVerVerbosity>
   </PropertyGroup>
 
