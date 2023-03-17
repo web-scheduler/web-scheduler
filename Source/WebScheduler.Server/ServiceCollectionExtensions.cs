@@ -18,7 +18,7 @@ internal static class ServiceCollectionExtensions
     /// <param name="webHostEnvironment">The environment the application is running under.</param>
     /// <returns>The services with open telemetry added.</returns>
     public static IServiceCollection AddCustomOpenTelemetryTracing(this IServiceCollection services, IWebHostEnvironment webHostEnvironment) =>
-        services.AddOpenTelemetryTracing(
+        services.AddOpenTelemetry().WithTracing(
             builder =>
             {
                 _ = builder
