@@ -19,7 +19,7 @@
 
 
   <ItemGroup Label="Package References">
-    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.5.22" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.6.40" />
     <PackageReference Include="MinVer" PrivateAssets="all" Version="4.3.0" />
     <PackageReference Include="Roslynator.Analyzers" Version="4.3.0">
       <PrivateAssets>all</PrivateAssets>

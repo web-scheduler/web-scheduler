@@ -43,7 +43,7 @@
     <PackageReference Include="Polly" Version="7.2.3" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
 
-    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.5.22">
+    <PackageReference Update="Microsoft.VisualStudio.Threading.Analyzers" Version="17.6.40">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
