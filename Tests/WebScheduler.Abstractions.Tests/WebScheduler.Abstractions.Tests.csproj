@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup Label="Package Versions">
-    <PackageReference Include="coverlet.collector" PrivateAssets="all" Version="3.2.0">
+    <PackageReference Include="coverlet.collector" PrivateAssets="all" Version="6.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="FakeItEasy" Version="7.3.1" />
