@@ -33,7 +33,7 @@
     <PackageReference Include="Cronos" Version="0.7.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.6.5" />
-    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.5" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="7.2.1" />
     <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.6.5" />
     <PackageReference Include="MySqlConnector" Version="2.2.6" />
     <PackageReference Include="Orleans.StorageProviderInterceptors" Version="0.0.6" />
