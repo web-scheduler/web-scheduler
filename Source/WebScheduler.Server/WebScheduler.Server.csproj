@@ -35,7 +35,7 @@
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.6.5" />
     <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.5" />
     <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.6.5" />
-    <PackageReference Include="MySqlConnector" Version="2.2.6" />
+    <PackageReference Include="MySqlConnector" Version="2.2.7" />
     <PackageReference Include="Orleans.StorageProviderInterceptors" Version="0.0.6" />
     <PackageReference Include="OrleansDashboard" Version="3.6.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="7.0.0" />
