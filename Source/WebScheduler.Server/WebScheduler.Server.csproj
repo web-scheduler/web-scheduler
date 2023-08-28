@@ -75,7 +75,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Update="MinVer" Version="4.3.0" />
-    <PackageReference Update="Roslynator.Analyzers" Version="4.3.0">
+    <PackageReference Update="Roslynator.Analyzers" Version="4.5.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
