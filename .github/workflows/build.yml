@@ -71,7 +71,7 @@ jobs:
           $mySqlCommand
           Invoke-Expression $mySqlCommand
       - name: "Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           lfs: true
           fetch-depth: 0
@@ -221,7 +221,7 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           lfs: true
           fetch-depth: 0
@@ -370,7 +370,7 @@ jobs:
       OUTPUT_FILE: ${{ matrix.artifact.outputFile}}-${{ needs.build_release_matrix.outputs.tag }}-${{ matrix.artifact.arch}}.tar.gz
     steps:
     - name: "Checkout"
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         lfs: true
         fetch-depth: 0
